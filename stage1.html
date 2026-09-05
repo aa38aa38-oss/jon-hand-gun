@@ -61,7 +61,6 @@
     object-fit: contain;
     box-shadow: 0 0 15px rgba(0,0,0,0.8);
   }
-  /* 返回首頁按鈕 */
   #home-btn {
     position: absolute;
     top: 14px;
@@ -164,9 +163,7 @@
   </div>
 
   <div class="control-panel" id="right-panel">
-    <!-- 返回首頁按鈕 -->
     <a href="index.html" id="home-btn">🏠 首頁</a>
-
     <div class="v-btn" id="btn-shoot" data-code="KeyJ">射擊</div>
     <div class="v-btn" id="btn-jump" data-code="KeyK">跳躍</div>
     <div class="v-btn" id="btn-dash" data-code="KeyL">衝刺</div>
@@ -177,6 +174,17 @@
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+
+// --- 圖檔資源載入 ---
+const imgPlayerStand = new Image();
+imgPlayerStand.src = "小江站立.png";
+let isStandLoaded = false;
+imgPlayerStand.onload = () => { isStandLoaded = true; };
+
+const imgPlayerShoot = new Image();
+imgPlayerShoot.src = "小江射擊.png";
+let isShootLoaded = false;
+imgPlayerShoot.onload = () => { isShootLoaded = true; };
 
 const keys = {};
 window.addEventListener("keydown", (e) => {
@@ -242,9 +250,9 @@ class Bullet {
 const player = {
   x: 80,
   y: 330,
-  w: 36,
-  h: 64,
-  crouchH: 34,
+  w: 42,
+  h: 68,
+  crouchH: 38,
   vx: 0,
   vy: 0,
   speed: 4.2,
@@ -259,6 +267,7 @@ const player = {
   dashTimer: 0,
   dashCooldown: 0,
   shootCooldown: 0,
+  shootAnimTimer: 0,
   weapon: "PISTOL",
   hp: 100,
   maxHp: 100,
@@ -267,6 +276,7 @@ const player = {
   update() {
     if (this.invincible > 0) this.invincible--;
     if (this.dashCooldown > 0) this.dashCooldown--;
+    if (this.shootAnimTimer > 0) this.shootAnimTimer--;
 
     const isDown = keys["KeyS"] || keys["ArrowDown"];
     this.isCrouching = isDown && this.isOnGround;
@@ -346,12 +356,14 @@ const player = {
   fire() {
     const currentHeight = this.isCrouching ? this.crouchH : this.h;
     let startX = this.x + (this.facing === 1 ? this.w : 0);
-    let startY = this.y + currentHeight * 0.35;
+    let startY = this.y + currentHeight * 0.45;
 
     if (this.aimDir.y === -1 && this.aimDir.x === 0) {
       startX = this.x + this.w / 2;
       startY = this.y;
     }
+
+    this.shootAnimTimer = 8; // 開火動畫持續幀數
 
     if (this.weapon === "PISTOL") {
       bullets.push(new Bullet(startX, startY, this.aimDir.x * 12, this.aimDir.y * 12, 14, "PISTOL"));
@@ -379,26 +391,25 @@ const player = {
     const currentHeight = this.isCrouching ? this.crouchH : this.h;
     ctx.save();
 
-    ctx.fillStyle = this.isCrouching ? "#2980b9" : "#3498db";
-    ctx.fillRect(this.x, this.y, this.w, currentHeight);
+    // 依據是否開火選擇貼圖
+    const isAttacking = this.shootAnimTimer > 0;
+    const targetImg = isAttacking ? imgPlayerShoot : imgPlayerStand;
+    const isLoaded = isAttacking ? isShootLoaded : isStandLoaded;
 
-    ctx.fillStyle = "#f39c12";
-    const headSize = 14;
-    const headX = this.facing === 1 ? this.x + this.w - headSize : this.x;
-    ctx.fillRect(headX, this.y + 4, headSize, headSize);
-
-    let muzzleX = this.x + (this.facing === 1 ? this.w : 0);
-    let muzzleY = this.y + currentHeight * 0.35;
-    if (this.aimDir.y === -1 && this.aimDir.x === 0) {
-      muzzleX = this.x + this.w / 2;
-      muzzleY = this.y;
+    if (isLoaded) {
+      // 依角色朝向進行水平鏡像翻轉
+      if (this.facing === -1) {
+        ctx.translate(this.x + this.w, this.y);
+        ctx.scale(-1, 1);
+        ctx.drawImage(targetImg, 0, 0, this.w, currentHeight);
+      } else {
+        ctx.drawImage(targetImg, this.x, this.y, this.w, currentHeight);
+      }
+    } else {
+      // 圖片未載入前的備用語法
+      ctx.fillStyle = isAttacking ? "#e74c3c" : "#3498db";
+      ctx.fillRect(this.x, this.y, this.w, currentHeight);
     }
-    ctx.strokeStyle = "#e74c3c";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(muzzleX, muzzleY);
-    ctx.lineTo(muzzleX + this.aimDir.x * 16, muzzleY + this.aimDir.y * 16);
-    ctx.stroke();
 
     ctx.restore();
   }
