@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>小江打手槍 - 第一關：三重國中</title>
+<style>
+  * {
+    box-sizing: border-box;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: #000;
+    touch-action: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #game-wrapper {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    background: #2c3e50;
+    max-width: 100vw;
+    max-height: 100vh;
+    aspect-ratio: 16 / 9;
+    object-fit: contain;
+  }
+  #touch-controls {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .v-btn {
+    pointer-events: auto;
+    position: absolute;
+    background: rgba(255, 255, 255, 0.25);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    color: #fff;
+    font-weight: bold;
+    font-size: 16px;
+    font-family: sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+  }
+  .v-btn:active {
+    background: rgba(243, 156, 18, 0.65);
+    border-color: #f39c12;
+  }
+  #btn-up    { left: 75px;  bottom: 120px; width: 48px; height: 48px; }
+  #btn-down  { left: 75px;  bottom: 24px;  width: 48px; height: 48px; }
+  #btn-left  { left: 20px;  bottom: 72px;  width: 48px; height: 48px; }
+  #btn-right { left: 130px; bottom: 72px;  width: 48px; height: 48px; }
+
+  #btn-shoot  { right: 135px; bottom: 35px;  width: 62px; height: 62px; background: rgba(231, 76, 60, 0.4); }
+  #btn-jump   { right: 45px;  bottom: 110px; width: 62px; height: 62px; background: rgba(46, 204, 113, 0.4); }
+  #btn-dash   { right: 35px;  bottom: 25px;  width: 52px; height: 52px; }
+  #btn-weapon { right: 125px; bottom: 125px; width: 52px; height: 52px; font-size: 13px; background: rgba(52, 152, 219, 0.4); }
+
+  /* 結算面板 */
+  #victory-panel {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(20, 20, 20, 0.95);
+    border: 3px solid #f1c40f;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    color: #fff;
+    font-family: sans-serif;
+    z-index: 50;
+    min-width: 280px;
+  }
+  #victory-panel h2 { color: #f1c40f; margin: 0 0 10px 0; }
+  #victory-panel p { color: #ccc; font-size: 14px; line-height: 1.6; }
+  #next-btn {
+    background: #e67e22;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 15px;
+  }
+</style>
+</head>
+<body>
+
+<div id="game-wrapper">
+  <canvas id="gameCanvas" width="800" height="450"></canvas>
+  
+  <div id="touch-controls">
+    <div class="v-btn" id="btn-up" data-code="KeyW">▲</div>
+    <div class="v-btn" id="btn-down" data-code="KeyS">▼</div>
+    <div class="v-btn" id="btn-left" data-code="KeyA">◀</div>
+    <div class="v-btn" id="btn-right" data-code="KeyD">▶</div>
+
+    <div class="v-btn" id="btn-shoot" data-code="KeyJ">射擊</div>
+    <div class="v-btn" id="btn-jump" data-code="KeyK">跳躍</div>
+    <div class="v-btn" id="btn-dash" data-code="KeyL">衝刺</div>
+    <div class="v-btn" id="btn-weapon">換槍</div>
+  </div>
+
+  <div id="victory-panel">
+    <h2>🎉 第一關 突破！</h2>
+    <p>小江成功打倒校園惡霸【力維哥】！<br>正義獲得伸張，準備前往三重集美街！</p>
+    <button id="next-btn" onclick="window.location.href='stage2.html'">前往第二關：三重集美街</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const keys = {};
+window.addEventListener("keydown", (e) => {
+  keys[e.code] = true;
+  if (e.code === "Digit1") player.weapon = "PISTOL";
+  if (e.code === "Digit2") player.weapon = "SHOTGUN";
+});
+window.addEventListener("keyup", (e) => {
+  keys[e.code] = false;
+});
+
+// 手機觸控監聽
+const touchButtons = document.querySelectorAll(".v-btn[data-code]");
+touchButtons.forEach((btn) => {
+  const code = btn.getAttribute("data-code");
+  btn.addEventListener("touchstart", (e) => { e.preventDefault(); keys[code] = true; }, { passive: false });
+  btn.addEventListener("touchend", (e) => { e.preventDefault(); keys[code] = false; }, { passive: false });
+  btn.addEventListener("touchcancel", (e) => { e.preventDefault(); keys[code] = false; }, { passive: false });
+});
+
+document.getElementById("btn-weapon").addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  player.weapon = (player.weapon === "PISTOL") ? "SHOTGUN" : "PISTOL";
+}, { passive: false });
+
+document.addEventListener("touchmove", (e) => { e.preventDefault(); }, { passive: false });
+
+// 地圖平台（三重國中教室課桌椅）
+const platforms = [
+  { x: 0, y: 400, w: 800, h: 50 },
+  { x: 120, y: 310, w: 140, h: 15 },
+  { x: 330, y: 240, w: 150, h: 15 },
+  { x: 550, y: 310, w: 140, h: 15 }
+];
+
+const bullets = [];
+
+class Bullet {
+  constructor(x, y, vx, vy, damage, type) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.damage = damage;
+    this.type = type;
+    this.isDead = false;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    if (this.x < -20 || this.x > canvas.width + 20 || this.y < -20 || this.y > canvas.height + 20) {
+      this.isDead = true;
+    }
+  }
+  draw() {
+    ctx.save();
+    ctx.fillStyle = this.type === "SHOTGUN" ? "#e67e22" : "#f1c40f";
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.type === "SHOTGUN" ? 4 : 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// 主角小江
+const player = {
+  x: 80,
+  y: 330,
+  w: 36,
+  h: 64,
+  crouchH: 34,
+  vx: 0,
+  vy: 0,
+  speed: 4.2,
+  jumpForce: -12.5,
+  gravity: 0.65,
+  friction: 0.8,
+  facing: 1,
+  aimDir: { x: 1, y: 0 },
+  isOnGround: false,
+  isCrouching: false,
+  isDashing: false,
+  dashTimer: 0,
+  dashCooldown: 0,
+  shootCooldown: 0,
+  weapon: "PISTOL",
+  hp: 100,
+  maxHp: 100,
+  invincible: 0,
+
+  update() {
+    if (this.invincible > 0) this.invincible--;
+    if (this.dashCooldown > 0) this.dashCooldown--;
+
+    const isDown = keys["KeyS"] || keys["ArrowDown"];
+    this.isCrouching = isDown && this.isOnGround;
+
+    const isLeft = keys["KeyA"] || keys["ArrowLeft"];
+    const isRight = keys["KeyD"] || keys["ArrowRight"];
+    let moveSpeed = this.isCrouching ? 0 : this.speed;
+
+    if (isLeft) {
+      this.vx = -moveSpeed;
+      this.facing = -1;
+    } else if (isRight) {
+      this.vx = moveSpeed;
+      this.facing = 1;
+    } else {
+      this.vx *= this.friction;
+      if (Math.abs(this.vx) < 0.2) this.vx = 0;
+    }
+
+    const isDash = keys["KeyL"] || keys["ShiftLeft"];
+    if (isDash && this.dashCooldown === 0 && !this.isCrouching) {
+      this.isDashing = true;
+      this.dashTimer = 8;
+      this.dashCooldown = 40;
+      this.vx = this.facing * 10.5;
+    }
+    if (this.isDashing) {
+      this.dashTimer--;
+      if (this.dashTimer <= 0) this.isDashing = false;
+    }
+
+    const isJump = keys["KeyK"] || keys["Space"];
+    if (isJump && this.isOnGround && !this.isCrouching) {
+      this.vy = this.jumpForce;
+      this.isOnGround = false;
+    }
+
+    const isUp = keys["KeyW"] || keys["ArrowUp"];
+    let dirX = this.facing;
+    let dirY = 0;
+    if (isUp) {
+      dirY = -1;
+      if (!isLeft && !isRight) dirX = 0;
+    } else if (isDown && !this.isOnGround) {
+      dirY = 1;
+      if (!isLeft && !isRight) dirX = 0;
+    }
+    const len = Math.hypot(dirX, dirY) || 1;
+    this.aimDir = { x: dirX / len, y: dirY / len };
+
+    this.vy += this.gravity;
+    this.x += this.vx;
+    this.y += this.vy;
+
+    const currentHeight = this.isCrouching ? this.crouchH : this.h;
+    this.isOnGround = false;
+
+    for (let p of platforms) {
+      if (this.x + this.w > p.x && this.x < p.x + p.w) {
+        if (this.y + currentHeight >= p.y && this.y + currentHeight <= p.y + p.h + Math.max(0, this.vy)) {
+          this.y = p.y - currentHeight;
+          this.vy = 0;
+          this.isOnGround = true;
+        }
+      }
+    }
+
+    if (this.x < 0) this.x = 0;
+    if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
+
+    if (this.shootCooldown > 0) this.shootCooldown--;
+    if (keys["KeyJ"] && this.shootCooldown === 0) {
+      this.fire();
+    }
+  },
+
+  fire() {
+    const currentHeight = this.isCrouching ? this.crouchH : this.h;
+    let startX = this.x + (this.facing === 1 ? this.w : 0);
+    let startY = this.y + currentHeight * 0.35;
+
+    if (this.aimDir.y === -1 && this.aimDir.x === 0) {
+      startX = this.x + this.w / 2;
+      startY = this.y;
+    }
+
+    if (this.weapon === "PISTOL") {
+      bullets.push(new Bullet(startX, startY, this.aimDir.x * 12, this.aimDir.y * 12, 14, "PISTOL"));
+      this.shootCooldown = 11;
+    } else if (this.weapon === "SHOTGUN") {
+      for (let offset of [-0.25, -0.12, 0, 0.12, 0.25]) {
+        const spreadX = this.aimDir.x * Math.cos(offset) - this.aimDir.y * Math.sin(offset);
+        const spreadY = this.aimDir.x * Math.sin(offset) + this.aimDir.y * Math.cos(offset);
+        bullets.push(new Bullet(startX, startY, spreadX * 10, spreadY * 10, 8, "SHOTGUN"));
+      }
+      this.shootCooldown = 26;
+    }
+  },
+
+  takeDamage(amount) {
+    if (this.invincible > 0) return;
+    this.hp = Math.max(0, this.hp - amount);
+    this.invincible = 50;
+    this.vy = -3;
+    this.vx = -this.facing * 4;
+  },
+
+  draw() {
+    if (this.invincible % 4 > 1) return;
+    const currentHeight = this.isCrouching ? this.crouchH : this.h;
+    ctx.save();
+
+    ctx.fillStyle = this.isCrouching ? "#2980b9" : "#3498db";
+    ctx.fillRect(this.x, this.y, this.w, currentHeight);
+
+    ctx.fillStyle = "#f39c12";
+    const headSize = 14;
+    const headX = this.facing === 1 ? this.x + this.w - headSize : this.x;
+    ctx.fillRect(headX, this.y + 4, headSize, headSize);
+
+    let muzzleX = this.x + (this.facing === 1 ? this.w : 0);
+    let muzzleY = this.y + currentHeight * 0.35;
+    if (this.aimDir.y === -1 && this.aimDir.x === 0) {
+      muzzleX = this.x + this.w / 2;
+      muzzleY = this.y;
+    }
+    ctx.strokeStyle = "#e74c3c";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(muzzleX, muzzleY);
+    ctx.lineTo(muzzleX + this.aimDir.x * 16, muzzleY + this.aimDir.y * 16);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+};
+
+// 校園雜兵（不良少年）
+const minions = [];
+let minionSpawnTimer = 0;
+
+class Minion {
+  constructor(x) {
+    this.x = x;
+    this.y = 350;
+    this.w = 32;
+    this.h = 50;
+    this.hp = 30;
+    this.speed = 1.6;
+    this.isDead = false;
+  }
+  update() {
+    // 朝小江走近
+    if (this.x > player.x + 10) this.x -= this.speed;
+    else if (this.x < player.x - 10) this.x += this.speed;
+
+    // 碰撞小江
+    if (Math.abs(this.x - player.x) < 25 && Math.abs(this.y - player.y) < 40) {
+      player.takeDamage(10);
+    }
+
+    // 被子彈擊中判定
+    for (let b of bullets) {
+      if (!b.isDead && b.x > this.x && b.x < this.x + this.w && b.y > this.y && b.y < this.y + this.h) {
+        this.hp -= b.damage;
+        b.isDead = true;
+        if (this.hp <= 0) this.isDead = true;
+      }
+    }
+  }
+  draw() {
+    ctx.save();
+    ctx.fillStyle = "#7f8c8d";
+    ctx.fillRect(this.x, this.y, this.w, this.h);
+    // 不良標誌（紅色頭巾）
+    ctx.fillStyle = "#c0392b";
+    ctx.fillRect(this.x, this.y, this.w, 8);
+    ctx.restore();
+  }
+}
+
+// 第一關 BOSS：力維哥（傳說對決牛魔王形象，揮拳猛擊與狂暴衝撞）
+const boss = {
+  x: 650,
+  y: 310,
+  w: 65,
+  h: 90,
+  hp: 600,
+  maxHp: 600,
+  state: "IDLE", // IDLE, WALK, PUNCH, CHARGE, STUNNED
+  timer: 0,
+  facing: -1,
+  vx: 0,
+  isDead: false,
+  hitFlash: 0,
+
+  update() {
+    if (this.isDead) return;
+    if (this.hitFlash > 0) this.hitFlash--;
+
+    this.timer++;
+    this.facing = (player.x < this.x) ? -1 : 1;
+
+    // AI 狀態機
+    if (this.state === "IDLE") {
+      this.vx = 0;
+      if (this.timer > 40) {
+        this.timer = 0;
+        // 血量小於50%有機率發動全螢幕衝撞
+        if (this.hp < this.maxHp * 0.5 && Math.random() < 0.45) {
+          this.state = "CHARGE_PREPARE";
+          this.timer = 0;
+        } else {
+          this.state = "WALK";
+        }
+      }
+    } else if (this.state === "WALK") {
+      this.vx = this.facing * 1.8;
+      this.x += this.vx;
+
+      // 靠近玩家時揮拳
+      if (Math.abs(this.x - player.x) < 70) {
+        this.state = "PUNCH";
+        this.timer = 0;
+      }
+      if (this.timer > 100) {
+        this.state = "IDLE";
+        this.timer = 0;
+      }
+    } else if (this.state === "PUNCH") {
+      this.vx = 0;
+      // 蓄力後前撲出拳
+      if (this.timer === 20) {
+        this.vx = this.facing * 5;
+        // 拳擊傷害範圍
+        if (Math.abs(this.x - player.x) < 85 && Math.abs(this.y - player.y) < 60) {
+          player.takeDamage(25);
+        }
+      }
+      if (this.timer > 45) {
+        this.state = "IDLE";
+        this.timer = 0;
+      }
+    } else if (this.state === "CHARGE_PREPARE") {
+      this.vx = 0; // 原地跺腳聚氣紅光
+      if (this.timer > 30) {
+        this.state = "CHARGING";
+        this.vx = this.facing * 9.5;
+        this.timer = 0;
+      }
+    } else if (this.state === "CHARGING") {
+      this.x += this.vx;
+      // 衝撞中傷害判定
+      if (Math.abs(this.x - player.x) < 55 && Math.abs(this.y - player.y) < 70) {
+        player.takeDamage(35);
+      }
+      // 撞牆進入暈眩
+      if (this.x <= 10 || this.x + this.w >= canvas.width - 10) {
+        this.state = "STUNNED";
+        this.timer = 0;
+        this.vx = 0;
+      }
+    } else if (this.state === "STUNNED") {
+      if (this.timer > 60) {
+        this.state = "IDLE";
+        this.timer = 0;
+      }
+    }
+
+    // 受到子彈傷害
+    for (let b of bullets) {
+      if (!b.isDead && b.x > this.x && b.x < this.x + this.w && b.y > this.y && b.y < this.y + this.h) {
+        this.hp -= b.damage;
+        this.hitFlash = 4;
+        b.isDead = true;
+        if (this.hp <= 0) {
+          this.isDead = true;
+          document.getElementById("victory-panel").style.display = "block";
+        }
+      }
+    }
+  },
+
+  draw() {
+    if (this.isDead) return;
+    ctx.save();
+
+    // 狂暴或受擊變色
+    if (this.hitFlash > 0) {
+      ctx.fillStyle = "#ffffff";
+    } else if (this.state === "CHARGE_PREPARE" || this.state === "CHARGING") {
+      ctx.fillStyle = "#e74c3c";
+    } else if (this.state === "STUNNED") {
+      ctx.fillStyle = "#f39c12";
+    } else {
+      ctx.fillStyle = "#8e44ad"; // 力維哥重裝牛魔王身軀
+    }
+    ctx.fillRect(this.x, this.y, this.w, this.h);
+
+    // 牛魔王角
+    ctx.fillStyle = "#d35400";
+    ctx.fillRect(this.facing === 1 ? this.x + this.w - 12 : this.x, this.y - 14, 12, 16);
+
+    // 揮拳重拳提示
+    if (this.state === "PUNCH" && this.timer >= 18 && this.timer <= 26) {
+      ctx.fillStyle = "#c0392b";
+      const fistX = this.facing === 1 ? this.x + this.w : this.x - 30;
+      ctx.fillRect(fistX, this.y + 25, 30, 30);
+    }
+
+    // BOSS 頭頂血條
+    ctx.fillStyle = "#333";
+    ctx.fillRect(this.x - 10, this.y - 25, this.w + 20, 8);
+    ctx.fillStyle = "#e74c3c";
+    ctx.fillRect(this.x - 10, this.y - 25, ((this.hp / this.maxHp) * (this.w + 20)), 8);
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "12px sans-serif";
+    ctx.fillText("校園惡霸 - 力維哥", this.x - 10, this.y - 30);
+
+    ctx.restore();
+  }
+};
+
+// 遊戲主循環
+function gameLoop() {
+  player.update();
+  boss.update();
+
+  // 雜兵生成管理
+  if (!boss.isDead) {
+    minionSpawnTimer++;
+    if (minionSpawnTimer > 240 && minions.length < 3) {
+      minions.push(new Minion(Math.random() > 0.5 ? 20 : 760));
+      minionSpawnTimer = 0;
+    }
+  }
+
+  for (let i = minions.length - 1; i >= 0; i--) {
+    minions[i].update();
+    if (minions[i].isDead) minions.splice(i, 1);
+  }
+
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    bullets[i].update();
+    if (bullets[i].isDead) bullets.splice(i, 1);
+  }
+
+  // 繪製畫面
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 背景：三重國中教室黑板
+  ctx.fillStyle = "#273746";
+  ctx.fillRect(0, 0, canvas.width, 400);
+  ctx.fillStyle = "#1e8449";
+  ctx.fillRect(260, 60, 280, 110);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "16px sans-serif";
+  ctx.fillText("三重國中 - 3年8班 (BOSS戰)", 300, 110);
+
+  // 課桌椅平台
+  ctx.fillStyle = "#7f8c8d";
+  for (let p of platforms) ctx.fillRect(p.x, p.y, p.w, p.h);
+
+  // 實體繪製
+  for (let m of minions) m.draw();
+  boss.draw();
+  player.draw();
+  for (let b of bullets) b.draw();
+
+  // HUD 資訊
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "14px monospace";
+  ctx.fillText(`武器: ${player.weapon} (按 1/2 或 換槍鍵)`, 15, 25);
+  ctx.fillText(`小江 HP: ${player.hp} / ${player.maxHp}`, 15, 45);
+
+  // 小江血條
+  ctx.fillStyle = "#444";
+  ctx.fillRect(15, 55, 120, 8);
+  ctx.fillStyle = "#2ecc71";
+  ctx.fillRect(15, 55, (player.hp / player.maxHp) * 120, 8);
+
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
