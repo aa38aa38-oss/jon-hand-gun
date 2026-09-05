@@ -175,13 +175,13 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// --- 圖檔資源載入與身形比例嚴格統一 ---
+// --- 圖檔資源管理與動態比例解析 ---
 const BASE_PLAYER_HEIGHT = 140;
 
 const imgPlayerStand = new Image();
 imgPlayerStand.src = "小江站立.png";
 let isStandLoaded = false;
-let standRatio = 110 / 140;
+let standRatio = 1.0;
 
 imgPlayerStand.onload = () => {
   isStandLoaded = true;
@@ -194,27 +194,57 @@ imgPlayerStand.onload = () => {
 const imgPlayerShoot = new Image();
 imgPlayerShoot.src = "小江射擊.png";
 let isShootLoaded = false;
-imgPlayerShoot.onload = () => { isShootLoaded = true; };
+let shootRatio = 1.0;
+imgPlayerShoot.onload = () => {
+  isShootLoaded = true;
+  if (imgPlayerShoot.naturalWidth && imgPlayerShoot.naturalHeight) {
+    shootRatio = imgPlayerShoot.naturalWidth / imgPlayerShoot.naturalHeight;
+  }
+};
 
 const imgPlayerCrouch = new Image();
 imgPlayerCrouch.src = "小江蹲下.png";
 let isCrouchLoaded = false;
-imgPlayerCrouch.onload = () => { isCrouchLoaded = true; };
+let crouchRatio = 1.8; // 預設安全寬高比
+imgPlayerCrouch.onload = () => {
+  isCrouchLoaded = true;
+  if (imgPlayerCrouch.naturalWidth && imgPlayerCrouch.naturalHeight) {
+    crouchRatio = imgPlayerCrouch.naturalWidth / imgPlayerCrouch.naturalHeight;
+  }
+};
 
 const imgPlayerJump = new Image();
 imgPlayerJump.src = "小江跳躍.png";
 let isJumpLoaded = false;
-imgPlayerJump.onload = () => { isJumpLoaded = true; };
+let jumpRatio = 1.8; // 預設安全寬高比
+imgPlayerJump.onload = () => {
+  isJumpLoaded = true;
+  if (imgPlayerJump.naturalWidth && imgPlayerJump.naturalHeight) {
+    jumpRatio = imgPlayerJump.naturalWidth / imgPlayerJump.naturalHeight;
+  }
+};
 
 const imgPlayerDash1 = new Image();
 imgPlayerDash1.src = "小江衝刺1.png";
 let isDash1Loaded = false;
-imgPlayerDash1.onload = () => { isDash1Loaded = true; };
+let dash1Ratio = 1.8;
+imgPlayerDash1.onload = () => {
+  isDash1Loaded = true;
+  if (imgPlayerDash1.naturalWidth && imgPlayerDash1.naturalHeight) {
+    dash1Ratio = imgPlayerDash1.naturalWidth / imgPlayerDash1.naturalHeight;
+  }
+};
 
 const imgPlayerDash2 = new Image();
 imgPlayerDash2.src = "小江衝刺2.png";
 let isDash2Loaded = false;
-imgPlayerDash2.onload = () => { isDash2Loaded = true; };
+let dash2Ratio = 1.8;
+imgPlayerDash2.onload = () => {
+  isDash2Loaded = true;
+  if (imgPlayerDash2.naturalWidth && imgPlayerDash2.naturalHeight) {
+    dash2Ratio = imgPlayerDash2.naturalWidth / imgPlayerDash2.naturalHeight;
+  }
+};
 
 // --- 雙向對稱動作特效粒子系統 ---
 const fxEffects = [];
@@ -451,7 +481,6 @@ const player = {
   baseH: BASE_PLAYER_HEIGHT,
   w: 110,
   h: BASE_PLAYER_HEIGHT,
-  crouchVisualH: Math.round(BASE_PLAYER_HEIGHT * 0.75),
   vx: 0,
   vy: 0,
   speed: 4.3,
@@ -480,7 +509,6 @@ const player = {
   updateSizes() {
     this.w = Math.round(this.baseH * standRatio);
     this.h = this.baseH;
-    this.crouchVisualH = Math.round(this.baseH * 0.75);
   },
 
   startDash(dir) {
@@ -598,11 +626,8 @@ const player = {
   },
 
   fire() {
-    const drawH = this.isCrouching ? this.crouchVisualH : this.h;
-    const drawY = this.y + (this.h - drawH);
-
     let startX = this.x + (this.facing === 1 ? this.w * 0.95 : this.w * 0.05);
-    let startY = this.isCrouching ? drawY + drawH * 0.48 : drawY + drawH * 0.44;
+    let startY = this.isCrouching ? this.y + this.h * 0.55 : this.y + this.h * 0.44;
 
     this.shootAnimTimer = 8;
 
@@ -633,57 +658,59 @@ const player = {
 
     let targetImg = imgPlayerStand;
     let isLoaded = isStandLoaded;
-    // 預設採用已校正完成的標準站立身形 (寬度 this.w, 高度 this.h)
-    let currentRenderH = this.h;
-    let currentRenderW = this.w;
+    let renderH = this.h;
+    let renderW = this.w;
 
-    if (this.isCrouching && isCrouchLoaded) {
-      targetImg = imgPlayerCrouch;
-      isLoaded = isCrouchLoaded;
-      currentRenderH = this.crouchVisualH;
-      currentRenderW = this.w;
+    // 依動作狀態動態對應每張圖的真實寬高比，不強行套用站立寬度
+    if (this.isCrouching) {
+      if (isCrouchLoaded) {
+        targetImg = imgPlayerCrouch;
+        isLoaded = true;
+        renderH = this.h; // 蹲下圖本身即為蹲姿，維持基準高避免雙重縮小
+        renderW = Math.round(renderH * crouchRatio);
+      }
     } else if (this.isDashing) {
       if (this.dashTimer > this.dashDuration / 2 && isDash1Loaded) {
         targetImg = imgPlayerDash1;
-        isLoaded = isDash1Loaded;
+        isLoaded = true;
+        renderH = this.h;
+        renderW = Math.round(renderH * dash1Ratio);
       } else if (isDash2Loaded) {
         targetImg = imgPlayerDash2;
-        isLoaded = isDash2Loaded;
+        isLoaded = true;
+        renderH = this.h;
+        renderW = Math.round(renderH * dash2Ratio);
       }
-      currentRenderH = this.h;
-      currentRenderW = this.w;
     } else if (this.shootAnimTimer > 0 && isShootLoaded) {
       targetImg = imgPlayerShoot;
-      isLoaded = isShootLoaded;
-      currentRenderH = this.h;
-      currentRenderW = this.w;
+      isLoaded = true;
+      renderH = this.h;
+      renderW = Math.round(renderH * shootRatio);
     } else if (!this.isOnGround) {
-      // 關鍵修復：跳躍貼圖完全鎖定與站立時相同尺寸 (this.w 與 this.h)，解決手機端跳躍身形縮小問題
       if (isJumpLoaded) {
         targetImg = imgPlayerJump;
         isLoaded = true;
-      } else {
-        targetImg = imgPlayerStand;
-        isLoaded = isStandLoaded;
+        renderH = this.h; // 跳躍保持身形等高
+        renderW = Math.round(renderH * jumpRatio); // 按跳躍圖自身長寬比開展
       }
-      currentRenderH = this.h;
-      currentRenderW = this.w;
     }
 
-    const renderX = this.x - camX;
-    const renderY = this.y + (this.h - currentRenderH);
+    // 將寬度較寬的貼圖置中對齊物理碰撞盒，腳底貼齊地面
+    const offsetX = (renderW - this.w) / 2;
+    const renderX = (this.x - offsetX) - camX;
+    const renderY = this.y + (this.h - renderH);
 
     if (isLoaded) {
       if (this.facing === -1) {
-        ctx.translate(renderX + currentRenderW, renderY);
+        ctx.translate(renderX + renderW, renderY);
         ctx.scale(-1, 1);
-        ctx.drawImage(targetImg, 0, 0, currentRenderW, currentRenderH);
+        ctx.drawImage(targetImg, 0, 0, renderW, renderH);
       } else {
-        ctx.drawImage(targetImg, renderX, renderY, currentRenderW, currentRenderH);
+        ctx.drawImage(targetImg, renderX, renderY, renderW, renderH);
       }
     } else {
       ctx.fillStyle = this.isDashing ? "#f39c12" : (this.shootAnimTimer > 0) ? "#e74c3c" : "#3498db";
-      ctx.fillRect(renderX, renderY, currentRenderW, currentRenderH);
+      ctx.fillRect(renderX, renderY, renderW, renderH);
     }
 
     ctx.restore();
@@ -707,8 +734,8 @@ class Minion {
     if (this.x > player.x + 10) this.x -= this.speed;
     else if (this.x < player.x - 10) this.x += this.speed;
 
-    const effectivePlayerH = player.isCrouching ? player.crouchVisualH : player.h;
-    const playerTopY = player.y + (player.h - effectivePlayerH);
+    // 蹲下時上方受擊判定排除 40px，有效避開不良少年的近身衝撞
+    const playerTopY = player.isCrouching ? player.y + 40 : player.y;
 
     if (Math.abs(this.x - player.x) < (this.w + player.w) * 0.35 &&
         (this.y < player.y + player.h && this.y + this.h > playerTopY)) {
@@ -784,8 +811,7 @@ const boss = {
       this.vx = 0;
       if (this.timer === 20) {
         this.vx = this.facing * 5;
-        const effectiveH = player.isCrouching ? player.crouchVisualH : player.h;
-        const playerTop = player.y + (player.h - effectiveH);
+        const playerTop = player.isCrouching ? player.y + 40 : player.y;
         if (Math.abs(this.x - player.x) < 95 && playerTop < this.y + 65) {
           player.takeDamage(25);
         }
