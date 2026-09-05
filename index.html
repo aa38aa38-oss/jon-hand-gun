@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小江打手槍 - 第一關：三重國中</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: monospace, sans-serif;
+    color: #fff;
+    user-select: none;
+  }
+  #game-container {
+    position: relative;
+    border: 3px solid #444;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+  }
+  canvas {
+    display: block;
+    background: #2c3e50;
+  }
+  #ui-panel {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #aaa;
+    text-align: center;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <canvas id="gameCanvas" width="800" height="450"></canvas>
+</div>
+<div id="ui-panel">
+  【小江打手槍 - 原型測試版】<br>
+  操作：A/D 移動 | K/空白 跳躍 | S 蹲下 | W 朝上瞄準 | L 衝刺 | J 射擊<br>
+  武器切換：按 1 切換小手槍 / 按 2 切換五向散彈槍
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// 鍵盤輸入監聽
+const keys = {};
+window.addEventListener("keydown", (e) => {
+  keys[e.code] = true;
+  if (e.code === "Digit1") player.weapon = "PISTOL";
+  if (e.code === "Digit2") player.weapon = "SHOTGUN";
+});
+window.addEventListener("keyup", (e) => {
+  keys[e.code] = false;
+});
+
+// 地形平台（三重國中教室課桌椅與走廊講台）
+const platforms = [
+  { x: 0, y: 400, w: 800, h: 50 },      // 地面
+  { x: 120, y: 310, w: 140, h: 15 },   // 課桌平台1
+  { x: 330, y: 240, w: 150, h: 15 },   // 講台上方浮台
+  { x: 550, y: 310, w: 140, h: 15 }    // 課桌平台2
+];
+
+// 子彈系統
+const bullets = [];
+
+class Bullet {
+  constructor(x, y, vx, vy, damage, type) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.damage = damage;
+    this.type = type;
+    this.isDead = false;
+    this.life = 120;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life--;
+    if (this.life <= 0 || this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+      this.isDead = true;
+    }
+  }
+  draw() {
+    ctx.save();
+    ctx.fillStyle = this.type === "SHOTGUN" ? "#e67e22" : "#f1c40f";
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.type === "SHOTGUN" ? 4 : 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// 主角小江物件
+const player = {
+  x: 80,
+  y: 330,
+  w: 36,
+  h: 64,
+  crouchH: 34,
+  vx: 0,
+  vy: 0,
+  speed: 4.2,
+  jumpForce: -12.5,
+  gravity: 0.65,
+  friction: 0.8,
+  facing: 1,
+  aimDir: { x: 1, y: 0 },
+  isOnGround: false,
+  isCrouching: false,
+  isDashing: false,
+  dashTimer: 0,
+  dashCooldown: 0,
+  shootCooldown: 0,
+  weapon: "PISTOL",
+  hp: 100,
+
+  update() {
+    if (this.dashCooldown > 0) this.dashCooldown--;
+
+    // 姿態：蹲下判定
+    const isDownPressed = keys["KeyS"] || keys["ArrowDown"];
+    if (isDownPressed && this.isOnGround) {
+      this.isCrouching = true;
+    } else {
+      this.isCrouching = false;
+    }
+
+    // 左右移動
+    const isLeft = keys["KeyA"] || keys["ArrowLeft"];
+    const isRight = keys["KeyD"] || keys["ArrowRight"];
+    let moveSpeed = this.isCrouching ? 0 : this.speed;
+
+    if (isLeft) {
+      this.vx = -moveSpeed;
+      this.facing = -1;
+    } else if (isRight) {
+      this.vx = moveSpeed;
+      this.facing = 1;
+    } else {
+      this.vx *= this.friction;
+      if (Math.abs(this.vx) < 0.2) this.vx = 0;
+    }
+
+    // 衝刺機制
+    const isDashPressed = keys["KeyL"] || keys["ShiftLeft"];
+    if (isDashPressed && this.dashCooldown === 0 && !this.isCrouching) {
+      this.isDashing = true;
+      this.dashTimer = 8;
+      this.dashCooldown = 40;
+      this.vx = this.facing * 10.5;
+    }
+    if (this.isDashing) {
+      this.dashTimer--;
+      if (this.dashTimer <= 0) this.isDashing = false;
+    }
+
+    // 跳躍
+    const isJumpPressed = keys["KeyK"] || keys["Space"];
+    if (isJumpPressed && this.isOnGround && !this.isCrouching) {
+      this.vy = this.jumpForce;
+      this.isOnGround = false;
+    }
+
+    // 越南大戰射擊朝向計算（支援純仰射、45度斜射、空中下壓射擊）
+    const isUpPressed = keys["KeyW"] || keys["ArrowUp"];
+    let dirX = this.facing;
+    let dirY = 0;
+
+    if (isUpPressed) {
+      dirY = -1;
+      if (!isLeft && !isRight) dirX = 0;
+    } else if (isDownPressed && !this.isOnGround) {
+      dirY = 1;
+      if (!isLeft && !isRight) dirX = 0;
+    }
+    const len = Math.hypot(dirX, dirY) || 1;
+    this.aimDir = { x: dirX / len, y: dirY / len };
+
+    // 物理與平台碰撞計算
+    this.vy += this.gravity;
+    this.x += this.vx;
+    this.y += this.vy;
+
+    const currentHeight = this.isCrouching ? this.crouchH : this.h;
+    this.isOnGround = false;
+
+    for (let p of platforms) {
+      if (this.x + this.w > p.x && this.x < p.x + p.w) {
+        if (this.y + currentHeight >= p.y && this.y + currentHeight <= p.y + p.h + Math.max(0, this.vy)) {
+          this.y = p.y - currentHeight;
+          this.vy = 0;
+          this.isOnGround = true;
+        }
+      }
+    }
+
+    // 地圖左右邊界防穿出
+    if (this.x < 0) this.x = 0;
+    if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
+
+    // 射擊冷卻與開火
+    if (this.shootCooldown > 0) this.shootCooldown--;
+    if (keys["KeyJ"] && this.shootCooldown === 0) {
+      this.fire();
+    }
+  },
+
+  fire() {
+    const currentHeight = this.isCrouching ? this.crouchH : this.h;
+    let startX = this.x + (this.facing === 1 ? this.w : 0);
+    let startY = this.y + currentHeight * 0.35;
+
+    if (this.aimDir.y === -1 && this.aimDir.x === 0) {
+      startX = this.x + this.w / 2;
+      startY = this.y;
+    }
+
+    if (this.weapon === "PISTOL") {
+      bullets.push(new Bullet(startX, startY, this.aimDir.x * 12, this.aimDir.y * 12, 12, "PISTOL"));
+      this.shootCooldown = 11;
+    } else if (this.weapon === "SHOTGUN") {
+      // 5向扇形射擊
+      for (let offset of [-0.25, -0.12, 0, 0.12, 0.25]) {
+        const spreadX = this.aimDir.x * Math.cos(offset) - this.aimDir.y * Math.sin(offset);
+        const spreadY = this.aimDir.x * Math.sin(offset) + this.aimDir.y * Math.cos(offset);
+        bullets.push(new Bullet(startX, startY, spreadX * 10, spreadY * 10, 8, "SHOTGUN"));
+      }
+      this.shootCooldown = 26;
+    }
+  },
+
+  draw() {
+    const currentHeight = this.isCrouching ? this.crouchH : this.h;
+    ctx.save();
+
+    // 小江身體
+    ctx.fillStyle = this.isCrouching ? "#2980b9" : "#3498db";
+    ctx.fillRect(this.x, this.y, this.w, currentHeight);
+
+    // 頭部識別框
+    ctx.fillStyle = "#f39c12";
+    const headSize = 14;
+    const headX = this.facing === 1 ? this.x + this.w - headSize : this.x;
+    ctx.fillRect(headX, this.y + 4, headSize, headSize);
+
+    // 槍口射擊朝向指示
+    let muzzleX = this.x + (this.facing === 1 ? this.w : 0);
+    let muzzleY = this.y + currentHeight * 0.35;
+    if (this.aimDir.y === -1 && this.aimDir.x === 0) {
+      muzzleX = this.x + this.w / 2;
+      muzzleY = this.y;
+    }
+    ctx.strokeStyle = "#e74c3c";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(muzzleX, muzzleY);
+    ctx.lineTo(muzzleX + this.aimDir.x * 16, muzzleY + this.aimDir.y * 16);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+};
+
+// 測試靶子（校園不良少年假人）
+const dummy = {
+  x: 680,
+  y: 336,
+  w: 40,
+  h: 64,
+  hp: 200,
+  maxHp: 200,
+  hitFlash: 0,
+  update() {
+    if (this.hitFlash > 0) this.hitFlash--;
+    // 子彈碰撞判定
+    for (let b of bullets) {
+      if (!b.isDead) {
+        if (b.x > this.x && b.x < this.x + this.w && b.y > this.y && b.y < this.y + this.h) {
+          this.hp -= b.damage;
+          this.hitFlash = 4;
+          b.isDead = true;
+          if (this.hp <= 0) this.hp = this.maxHp; // 歸零自動回滿方便持續測試
+        }
+      }
+    }
+  },
+  draw() {
+    ctx.save();
+    ctx.fillStyle = this.hitFlash > 0 ? "#ffffff" : "#c0392b";
+    ctx.fillRect(this.x, this.y, this.w, this.h);
+
+    // 血條
+    ctx.fillStyle = "#555";
+    ctx.fillRect(this.x - 5, this.y - 14, 50, 6);
+    ctx.fillStyle = "#2ecc71";
+    ctx.fillRect(this.x - 5, this.y - 14, (this.hp / this.maxHp) * 50, 6);
+    ctx.restore();
+  }
+};
+
+// 主遊戲迴圈
+function gameLoop() {
+  // 1. 邏輯更新
+  player.update();
+  dummy.update();
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    bullets[i].update();
+    if (bullets[i].isDead) bullets.splice(i, 1);
+  }
+
+  // 2. 畫面渲染
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 繪製三重國中黑板與背景格線
+  ctx.fillStyle = "#273746";
+  ctx.fillRect(0, 0, canvas.width, 400);
+  ctx.fillStyle = "#1e8449";
+  ctx.fillRect(260, 60, 280, 110);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "16px sans-serif";
+  ctx.fillText("三重國中 - 3年8班", 330, 110);
+
+  // 繪製地圖平台
+  ctx.fillStyle = "#7f8c8d";
+  for (let p of platforms) {
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+  }
+
+  // 繪製實體
+  dummy.draw();
+  player.draw();
+  for (let b of bullets) {
+    b.draw();
+  }
+
+  // 左上方 HUD
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "14px monospace";
+  ctx.fillText(`武器: ${player.weapon} (按 1 或 2 切換)`, 15, 25);
+  ctx.fillText(`小江狀態: ${player.isCrouching ? "蹲下" : player.isDashing ? "衝刺中" : "站立/移動"}`, 15, 45);
+
+  requestAnimationFrame(gameLoop);
+}
+
+// 啟動遊戲
+gameLoop();
+</script>
+</body>
+</html>
