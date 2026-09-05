@@ -247,12 +247,13 @@ class Bullet {
   }
 }
 
+// 主角小江物件（依原圖正確比例修正寬度與高度）
 const player = {
   x: 80,
-  y: 330,
-  w: 42,
-  h: 68,
-  crouchH: 38,
+  y: 328,
+  w: 58,         // 修正為原圖飽滿比例
+  h: 72,
+  crouchH: 48,
   vx: 0,
   vy: 0,
   speed: 4.2,
@@ -355,15 +356,16 @@ const player = {
 
   fire() {
     const currentHeight = this.isCrouching ? this.crouchH : this.h;
-    let startX = this.x + (this.facing === 1 ? this.w : 0);
-    let startY = this.y + currentHeight * 0.45;
+    // 依新身形重新計算槍口坐標
+    let startX = this.x + (this.facing === 1 ? this.w * 0.95 : this.w * 0.05);
+    let startY = this.y + currentHeight * 0.42;
 
     if (this.aimDir.y === -1 && this.aimDir.x === 0) {
       startX = this.x + this.w / 2;
       startY = this.y;
     }
 
-    this.shootAnimTimer = 8; // 開火動畫持續幀數
+    this.shootAnimTimer = 8;
 
     if (this.weapon === "PISTOL") {
       bullets.push(new Bullet(startX, startY, this.aimDir.x * 12, this.aimDir.y * 12, 14, "PISTOL"));
@@ -391,13 +393,11 @@ const player = {
     const currentHeight = this.isCrouching ? this.crouchH : this.h;
     ctx.save();
 
-    // 依據是否開火選擇貼圖
     const isAttacking = this.shootAnimTimer > 0;
     const targetImg = isAttacking ? imgPlayerShoot : imgPlayerStand;
     const isLoaded = isAttacking ? isShootLoaded : isStandLoaded;
 
     if (isLoaded) {
-      // 依角色朝向進行水平鏡像翻轉
       if (this.facing === -1) {
         ctx.translate(this.x + this.w, this.y);
         ctx.scale(-1, 1);
@@ -406,7 +406,6 @@ const player = {
         ctx.drawImage(targetImg, this.x, this.y, this.w, currentHeight);
       }
     } else {
-      // 圖片未載入前的備用語法
       ctx.fillStyle = isAttacking ? "#e74c3c" : "#3498db";
       ctx.fillRect(this.x, this.y, this.w, currentHeight);
     }
@@ -432,7 +431,7 @@ class Minion {
     if (this.x > player.x + 10) this.x -= this.speed;
     else if (this.x < player.x - 10) this.x += this.speed;
 
-    if (Math.abs(this.x - player.x) < 25 && Math.abs(this.y - player.y) < 40) {
+    if (Math.abs(this.x - player.x) < 32 && Math.abs(this.y - player.y) < 40) {
       player.takeDamage(10);
     }
 
