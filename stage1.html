@@ -102,7 +102,7 @@
     background: rgba(243, 156, 18, 0.7);
     border-color: #f39c12;
   }
-  #btn-up    { left: 41px; bottom: 135px; width: 48px; height: 48px; }
+  #btn-up    { left: 41px; bottom: 135px; width: 48px; height: 48px; font-size: 13px; }
   #btn-down  { left: 41px; bottom: 35px;  width: 48px; height: 48px; }
   #btn-left  { left: 8px;  bottom: 85px;  width: 48px; height: 48px; }
   #btn-right { left: 74px; bottom: 85px;  width: 48px; height: 48px; }
@@ -147,7 +147,7 @@
 
 <div id="main-layout">
   <div class="control-panel" id="left-panel">
-    <div class="v-btn" id="btn-up" data-code="KeyW">▲</div>
+    <div class="v-btn" id="btn-up" data-code="KeyW">跳</div>
     <div class="v-btn" id="btn-down" data-code="KeyS">▼</div>
     <div class="v-btn" id="btn-left" data-code="KeyA">◀</div>
     <div class="v-btn" id="btn-right" data-code="KeyD">▶</div>
@@ -179,19 +179,178 @@ const ctx = canvas.getContext("2d");
 const imgPlayerStand = new Image();
 imgPlayerStand.src = "小江站立.png";
 let isStandLoaded = false;
-imgPlayerStand.onload = () => { isStandLoaded = true; };
+imgPlayerStand.onload = () => { isStandLoaded = true; player.initSize(); };
 
 const imgPlayerShoot = new Image();
 imgPlayerShoot.src = "小江射擊.png";
 let isShootLoaded = false;
 imgPlayerShoot.onload = () => { isShootLoaded = true; };
 
+const imgPlayerCrouch = new Image();
+imgPlayerCrouch.src = "小江蹲下.png";
+let isCrouchLoaded = false;
+imgPlayerCrouch.onload = () => { isCrouchLoaded = true; };
+
+const imgPlayerJump = new Image();
+imgPlayerJump.src = "小江跳躍.png";
+let isJumpLoaded = false;
+imgPlayerJump.onload = () => { isJumpLoaded = true; };
+
+const imgPlayerDash1 = new Image();
+imgPlayerDash1.src = "小江衝刺1.png";
+let isDash1Loaded = false;
+imgPlayerDash1.onload = () => { isDash1Loaded = true; };
+
+const imgPlayerDash2 = new Image();
+imgPlayerDash2.src = "小江衝刺2.png";
+let isDash2Loaded = false;
+imgPlayerDash2.onload = () => { isDash2Loaded = true; };
+
+// --- 雙向對稱動作特效粒子系統 ---
+const fxEffects = [];
+
+class ActionFX {
+  constructor(x, y, vx, vy, length, width, color, life, type = "LINE") {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.length = length;
+    this.width = width;
+    this.color = color;
+    this.life = life;
+    this.maxLife = life;
+    this.type = type;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life--;
+  }
+  draw(camX) {
+    ctx.save();
+    const alpha = Math.max(0, this.life / this.maxLife);
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = this.width;
+    ctx.lineCap = "round";
+
+    if (this.type === "LINE") {
+      ctx.beginPath();
+      ctx.moveTo(this.x - camX, this.y);
+      ctx.lineTo(this.x - camX - this.vx * this.length, this.y - this.vy * this.length);
+      ctx.stroke();
+    } else if (this.type === "DUST") {
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(this.x - camX, this.y, this.width * (1 - alpha + 0.5), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// 根據 dir (1 為向右, -1 為向左) 自動反轉噴射原點與向量
+function spawnDashLines(x, y, w, dir, isAir) {
+  // 噴射原點設在角色後背
+  const originX = dir === 1 ? x : x + w;
+
+  for (let i = 0; i < 4; i++) {
+    const offsetY = (Math.random() - 0.5) * 75;
+    fxEffects.push(new ActionFX(
+      originX - dir * (Math.random() * 25),
+      y + 55 + offsetY,
+      dir * (12 + Math.random() * 8),
+      (Math.random() - 0.5) * 1.5,
+      2.5,
+      2.5 + Math.random() * 2,
+      "#ffffff",
+      12,
+      "LINE"
+    ));
+  }
+
+  if (!isAir) {
+    for (let i = 0; i < 2; i++) {
+      fxEffects.push(new ActionFX(
+        originX - dir * 10,
+        y + 132 + (Math.random() - 0.5) * 6,
+        -dir * (3 + Math.random() * 4),
+        -Math.random() * 2.5,
+        0,
+        5 + Math.random() * 4,
+        "rgba(240, 240, 240, 0.75)",
+        15,
+        "DUST"
+      ));
+    }
+  }
+}
+
+// 跳躍爆發氣流：依面向與是否衝刺對齊噴發角度
+function spawnJumpBurst(x, y, w, dir, isDouble, isDashJump) {
+  const lineCount = isDashJump ? 12 : isDouble ? 9 : 7;
+  const color = isDashJump ? "#f1c40f" : "#ffffff";
+  const centerX = x + w / 2;
+
+  for (let i = 0; i < lineCount; i++) {
+    // 衝刺大跳躍時氣流向後下方強烈反衝
+    let angle;
+    if (isDashJump) {
+      const baseAngle = dir === 1 ? Math.PI * 0.75 : Math.PI * 0.25;
+      angle = baseAngle + (Math.random() - 0.5) * 0.7;
+    } else {
+      angle = (Math.PI / 2) + (Math.random() - 0.5) * 1.3;
+    }
+    const speed = 7 + Math.random() * 9;
+    fxEffects.push(new ActionFX(
+      centerX + (Math.random() - 0.5) * 35,
+      y + 130,
+      Math.cos(angle) * speed,
+      Math.sin(angle) * speed,
+      2.2,
+      2.5 + Math.random() * 2,
+      color,
+      14,
+      "LINE"
+    ));
+  }
+}
+
+// 雙擊方向鍵判定
+let lastTapTimeLeft = 0;
+let lastTapTimeRight = 0;
+const DOUBLE_TAP_THRESHOLD = 250;
+
+function handleDirectionPress(dir) {
+  const now = Date.now();
+  if (dir === "left") {
+    if (now - lastTapTimeLeft < DOUBLE_TAP_THRESHOLD) player.startDash(-1);
+    lastTapTimeLeft = now;
+  } else if (dir === "right") {
+    if (now - lastTapTimeRight < DOUBLE_TAP_THRESHOLD) player.startDash(1);
+    lastTapTimeRight = now;
+  }
+}
+
 const keys = {};
+
+function isShootKey(code) { return code === "KeyJ" || code === "KeyX"; }
+function isJumpKey(code) { return code === "KeyK" || code === "KeyC" || code === "Space" || code === "KeyW" || code === "ArrowUp"; }
+
 window.addEventListener("keydown", (e) => {
+  if (isShootKey(e.code) && !keys[e.code]) player.tryRapidFire();
+  if (isJumpKey(e.code) && !keys[e.code]) player.tryJump();
+  if (e.code === "KeyL" && !keys["KeyL"]) player.startDash(player.facing);
+
+  if ((e.code === "KeyA" || e.code === "ArrowLeft") && !keys[e.code]) handleDirectionPress("left");
+  if ((e.code === "KeyD" || e.code === "ArrowRight") && !keys[e.code]) handleDirectionPress("right");
+
   keys[e.code] = true;
   if (e.code === "Digit1") player.weapon = "PISTOL";
   if (e.code === "Digit2") player.weapon = "SHOTGUN";
 });
+
 window.addEventListener("keyup", (e) => {
   keys[e.code] = false;
 });
@@ -199,9 +358,25 @@ window.addEventListener("keyup", (e) => {
 const touchButtons = document.querySelectorAll(".v-btn[data-code]");
 touchButtons.forEach((btn) => {
   const code = btn.getAttribute("data-code");
-  btn.addEventListener("touchstart", (e) => { e.preventDefault(); keys[code] = true; }, { passive: false });
-  btn.addEventListener("touchend", (e) => { e.preventDefault(); keys[code] = false; }, { passive: false });
-  btn.addEventListener("touchcancel", (e) => { e.preventDefault(); keys[code] = false; }, { passive: false });
+  btn.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    if (isShootKey(code)) player.tryRapidFire();
+    if (isJumpKey(code)) player.tryJump();
+    if (code === "KeyL") player.startDash(player.facing);
+    if (code === "KeyA") handleDirectionPress("left");
+    if (code === "KeyD") handleDirectionPress("right");
+    keys[code] = true;
+  }, { passive: false });
+
+  btn.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    keys[code] = false;
+  }, { passive: false });
+
+  btn.addEventListener("touchcancel", (e) => {
+    e.preventDefault();
+    keys[code] = false;
+  }, { passive: false });
 });
 
 document.getElementById("btn-weapon").addEventListener("touchstart", (e) => {
@@ -211,11 +386,28 @@ document.getElementById("btn-weapon").addEventListener("touchstart", (e) => {
 
 document.addEventListener("touchmove", (e) => { e.preventDefault(); }, { passive: false });
 
+const LEVEL_WIDTH = 2400;
+
+const camera = {
+  x: 0,
+  y: 0,
+  update(targetX) {
+    this.x = targetX - canvas.width * 0.38;
+    if (this.x < 0) this.x = 0;
+    if (this.x > LEVEL_WIDTH - canvas.width) this.x = LEVEL_WIDTH - canvas.width;
+  }
+};
+
 const platforms = [
-  { x: 0, y: 400, w: 800, h: 50 },
-  { x: 120, y: 310, w: 140, h: 15 },
-  { x: 330, y: 240, w: 150, h: 15 },
-  { x: 550, y: 310, w: 140, h: 15 }
+  { x: 0, y: 400, w: LEVEL_WIDTH, h: 50 },
+  { x: 140, y: 310, w: 150, h: 15 },
+  { x: 380, y: 240, w: 160, h: 15 },
+  { x: 650, y: 310, w: 150, h: 15 },
+  { x: 920, y: 260, w: 160, h: 15 },
+  { x: 1200, y: 320, w: 150, h: 15 },
+  { x: 1480, y: 240, w: 170, h: 15 },
+  { x: 1750, y: 300, w: 160, h: 15 },
+  { x: 2020, y: 250, w: 180, h: 15 }
 ];
 
 const bullets = [];
@@ -233,31 +425,35 @@ class Bullet {
   update() {
     this.x += this.vx;
     this.y += this.vy;
-    if (this.x < -20 || this.x > canvas.width + 20 || this.y < -20 || this.y > canvas.height + 20) {
+    if (this.x < -40 || this.x > LEVEL_WIDTH + 40 || this.y < -40 || this.y > canvas.height + 40) {
       this.isDead = true;
     }
   }
-  draw() {
+  draw(camX) {
     ctx.save();
     ctx.fillStyle = this.type === "SHOTGUN" ? "#e67e22" : "#f1c40f";
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.type === "SHOTGUN" ? 4 : 3, 0, Math.PI * 2);
+    ctx.arc(this.x - camX, this.y, this.type === "SHOTGUN" ? 5 : 3.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
 }
 
-// 主角小江物件（依原圖正確比例修正寬度與高度）
+// 主角小江物件
 const player = {
   x: 80,
-  y: 328,
-  w: 58,         // 修正為原圖飽滿比例
-  h: 72,
-  crouchH: 48,
+  y: 260,
+  baseH: 140,
+  w: 110,
+  h: 140,
+  crouchVisualH: 105,
   vx: 0,
   vy: 0,
-  speed: 4.2,
-  jumpForce: -12.5,
+  speed: 4.3,
+  jumpForce: -13.5,
+  doubleJumpForce: -12.0,
+  jumpCount: 0,
+  hasAirDashed: false,
   gravity: 0.65,
   friction: 0.8,
   facing: 1,
@@ -265,14 +461,71 @@ const player = {
   isOnGround: false,
   isCrouching: false,
   isDashing: false,
+  dashDuration: 22,
   dashTimer: 0,
   dashCooldown: 0,
+  isDashJumping: false,
   shootCooldown: 0,
   shootAnimTimer: 0,
   weapon: "PISTOL",
   hp: 100,
   maxHp: 100,
   invincible: 0,
+
+  initSize() {
+    if (imgPlayerStand.naturalWidth && imgPlayerStand.naturalHeight) {
+      const ratio = imgPlayerStand.naturalWidth / imgPlayerStand.naturalHeight;
+      this.w = Math.round(this.baseH * ratio);
+      this.h = this.baseH;
+      this.crouchVisualH = Math.round(this.baseH * 0.75);
+    }
+  },
+
+  startDash(dir) {
+    if (this.dashCooldown > 0 || this.isCrouching) return;
+    if (!this.isOnGround && this.hasAirDashed) return;
+
+    this.isDashing = true;
+    this.facing = dir;
+    this.dashTimer = this.dashDuration;
+    this.dashCooldown = 30;
+
+    if (!this.isOnGround) {
+      this.hasAirDashed = true;
+      this.vy = 0;
+    }
+    this.vx = this.facing * 14.8;
+  },
+
+  tryJump() {
+    if (this.isCrouching) return;
+
+    if (this.isOnGround) {
+      if (this.isDashing) {
+        this.isDashJumping = true;
+        this.vy = this.jumpForce * 1.05;
+        this.vx = this.facing * 14.5;
+        this.isDashing = false;
+        spawnJumpBurst(this.x, this.y, this.w, this.facing, false, true);
+      } else {
+        this.isDashJumping = false;
+        this.vy = this.jumpForce;
+        spawnJumpBurst(this.x, this.y, this.w, this.facing, false, false);
+      }
+      this.isOnGround = false;
+      this.jumpCount = 1;
+    } else if (this.jumpCount === 1) {
+      this.vy = this.doubleJumpForce;
+      this.jumpCount = 2;
+      this.isDashing = false;
+      spawnJumpBurst(this.x, this.y, this.w, this.facing, true, false);
+    }
+  },
+
+  tryRapidFire() {
+    this.shootCooldown = 0;
+    this.fire();
+  },
 
   update() {
     if (this.invincible > 0) this.invincible--;
@@ -286,97 +539,84 @@ const player = {
     const isRight = keys["KeyD"] || keys["ArrowRight"];
     let moveSpeed = this.isCrouching ? 0 : this.speed;
 
-    if (isLeft) {
-      this.vx = -moveSpeed;
-      this.facing = -1;
-    } else if (isRight) {
-      this.vx = moveSpeed;
-      this.facing = 1;
-    } else {
-      this.vx *= this.friction;
-      if (Math.abs(this.vx) < 0.2) this.vx = 0;
-    }
-
-    const isDash = keys["KeyL"] || keys["ShiftLeft"];
-    if (isDash && this.dashCooldown === 0 && !this.isCrouching) {
-      this.isDashing = true;
-      this.dashTimer = 8;
-      this.dashCooldown = 40;
-      this.vx = this.facing * 10.5;
-    }
     if (this.isDashing) {
       this.dashTimer--;
+      if (!this.isOnGround) {
+        this.vy = 0;
+      }
+      this.vx = this.facing * 14.8;
+      // 根據當前面向自動噴發對稱特效線
+      if (this.dashTimer % 2 === 0) {
+        spawnDashLines(this.x, this.y, this.w, this.facing, !this.isOnGround);
+      }
       if (this.dashTimer <= 0) this.isDashing = false;
+    } else if (this.isDashJumping && !this.isOnGround) {
+      if (isLeft) this.facing = -1;
+      else if (isRight) this.facing = 1;
+      this.vx = this.facing * 13.0;
+    } else {
+      if (isLeft) {
+        this.vx = -moveSpeed;
+        this.facing = -1;
+      } else if (isRight) {
+        this.vx = moveSpeed;
+        this.facing = 1;
+      } else {
+        this.vx *= this.friction;
+        if (Math.abs(this.vx) < 0.2) this.vx = 0;
+      }
     }
 
-    const isJump = keys["KeyK"] || keys["Space"];
-    if (isJump && this.isOnGround && !this.isCrouching) {
-      this.vy = this.jumpForce;
-      this.isOnGround = false;
-    }
+    this.aimDir = { x: this.facing, y: 0 };
 
-    const isUp = keys["KeyW"] || keys["ArrowUp"];
-    let dirX = this.facing;
-    let dirY = 0;
-    if (isUp) {
-      dirY = -1;
-      if (!isLeft && !isRight) dirX = 0;
-    } else if (isDown && !this.isOnGround) {
-      dirY = 1;
-      if (!isLeft && !isRight) dirX = 0;
+    if (!this.isDashing || this.isOnGround) {
+      this.vy += this.gravity;
     }
-    const len = Math.hypot(dirX, dirY) || 1;
-    this.aimDir = { x: dirX / len, y: dirY / len };
-
-    this.vy += this.gravity;
     this.x += this.vx;
     this.y += this.vy;
 
-    const currentHeight = this.isCrouching ? this.crouchH : this.h;
     this.isOnGround = false;
-
     for (let p of platforms) {
       if (this.x + this.w > p.x && this.x < p.x + p.w) {
-        if (this.y + currentHeight >= p.y && this.y + currentHeight <= p.y + p.h + Math.max(0, this.vy)) {
-          this.y = p.y - currentHeight;
+        if (this.y + this.h >= p.y && this.y + this.h <= p.y + p.h + Math.max(0, this.vy)) {
+          this.y = p.y - this.h;
           this.vy = 0;
           this.isOnGround = true;
+          this.jumpCount = 0;
+          this.hasAirDashed = false;
+          this.isDashJumping = false;
         }
       }
     }
 
     if (this.x < 0) this.x = 0;
-    if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
+    if (this.x + this.w > LEVEL_WIDTH) this.x = LEVEL_WIDTH - this.w;
 
     if (this.shootCooldown > 0) this.shootCooldown--;
-    if (keys["KeyJ"] && this.shootCooldown === 0) {
+    if ((keys["KeyJ"] || keys["KeyX"]) && this.shootCooldown === 0) {
       this.fire();
     }
   },
 
   fire() {
-    const currentHeight = this.isCrouching ? this.crouchH : this.h;
-    // 依新身形重新計算槍口坐標
-    let startX = this.x + (this.facing === 1 ? this.w * 0.95 : this.w * 0.05);
-    let startY = this.y + currentHeight * 0.42;
+    const drawH = this.isCrouching ? this.crouchVisualH : this.h;
+    const drawY = this.y + (this.h - drawH);
 
-    if (this.aimDir.y === -1 && this.aimDir.x === 0) {
-      startX = this.x + this.w / 2;
-      startY = this.y;
-    }
+    let startX = this.x + (this.facing === 1 ? this.w * 0.95 : this.w * 0.05);
+    let startY = this.isCrouching ? drawY + drawH * 0.48 : drawY + drawH * 0.44;
 
     this.shootAnimTimer = 8;
 
     if (this.weapon === "PISTOL") {
-      bullets.push(new Bullet(startX, startY, this.aimDir.x * 12, this.aimDir.y * 12, 14, "PISTOL"));
-      this.shootCooldown = 11;
+      bullets.push(new Bullet(startX, startY, this.aimDir.x * 13, 0, 14, "PISTOL"));
+      this.shootCooldown = 10;
     } else if (this.weapon === "SHOTGUN") {
-      for (let offset of [-0.25, -0.12, 0, 0.12, 0.25]) {
-        const spreadX = this.aimDir.x * Math.cos(offset) - this.aimDir.y * Math.sin(offset);
-        const spreadY = this.aimDir.x * Math.sin(offset) + this.aimDir.y * Math.cos(offset);
-        bullets.push(new Bullet(startX, startY, spreadX * 10, spreadY * 10, 8, "SHOTGUN"));
+      for (let offset of [-0.22, -0.11, 0, 0.11, 0.22]) {
+        const spreadX = this.aimDir.x * Math.cos(offset);
+        const spreadY = Math.sin(offset) * 8;
+        bullets.push(new Bullet(startX, startY, spreadX * 11, spreadY, 8, "SHOTGUN"));
       }
-      this.shootCooldown = 26;
+      this.shootCooldown = 22;
     }
   },
 
@@ -388,26 +628,48 @@ const player = {
     this.vx = -this.facing * 4;
   },
 
-  draw() {
+  draw(camX) {
     if (this.invincible % 4 > 1) return;
-    const currentHeight = this.isCrouching ? this.crouchH : this.h;
     ctx.save();
 
-    const isAttacking = this.shootAnimTimer > 0;
-    const targetImg = isAttacking ? imgPlayerShoot : imgPlayerStand;
-    const isLoaded = isAttacking ? isShootLoaded : isStandLoaded;
+    let targetImg = imgPlayerStand;
+    let isLoaded = isStandLoaded;
+    let currentRenderH = this.h;
+
+    if (this.isCrouching && isCrouchLoaded) {
+      targetImg = imgPlayerCrouch;
+      isLoaded = isCrouchLoaded;
+      currentRenderH = this.crouchVisualH;
+    } else if (this.isDashing) {
+      if (this.dashTimer > this.dashDuration / 2 && isDash1Loaded) {
+        targetImg = imgPlayerDash1;
+        isLoaded = isDash1Loaded;
+      } else if (isDash2Loaded) {
+        targetImg = imgPlayerDash2;
+        isLoaded = isDash2Loaded;
+      }
+    } else if (this.shootAnimTimer > 0 && isShootLoaded) {
+      targetImg = imgPlayerShoot;
+      isLoaded = isShootLoaded;
+    } else if (!this.isOnGround && isJumpLoaded) {
+      targetImg = imgPlayerJump;
+      isLoaded = isJumpLoaded;
+    }
+
+    const renderX = this.x - camX;
+    const renderY = this.y + (this.h - currentRenderH);
 
     if (isLoaded) {
       if (this.facing === -1) {
-        ctx.translate(this.x + this.w, this.y);
+        ctx.translate(renderX + this.w, renderY);
         ctx.scale(-1, 1);
-        ctx.drawImage(targetImg, 0, 0, this.w, currentHeight);
+        ctx.drawImage(targetImg, 0, 0, this.w, currentRenderH);
       } else {
-        ctx.drawImage(targetImg, this.x, this.y, this.w, currentHeight);
+        ctx.drawImage(targetImg, renderX, renderY, this.w, currentRenderH);
       }
     } else {
-      ctx.fillStyle = isAttacking ? "#e74c3c" : "#3498db";
-      ctx.fillRect(this.x, this.y, this.w, currentHeight);
+      ctx.fillStyle = this.isDashing ? "#f39c12" : (this.shootAnimTimer > 0) ? "#e74c3c" : "#3498db";
+      ctx.fillRect(renderX, renderY, this.w, currentRenderH);
     }
 
     ctx.restore();
@@ -431,7 +693,11 @@ class Minion {
     if (this.x > player.x + 10) this.x -= this.speed;
     else if (this.x < player.x - 10) this.x += this.speed;
 
-    if (Math.abs(this.x - player.x) < 32 && Math.abs(this.y - player.y) < 40) {
+    const effectivePlayerH = player.isCrouching ? player.crouchVisualH : player.h;
+    const playerTopY = player.y + (player.h - effectivePlayerH);
+
+    if (Math.abs(this.x - player.x) < (this.w + player.w) * 0.35 &&
+        (this.y < player.y + player.h && this.y + this.h > playerTopY)) {
       player.takeDamage(10);
     }
 
@@ -443,18 +709,19 @@ class Minion {
       }
     }
   }
-  draw() {
+  draw(camX) {
     ctx.save();
     ctx.fillStyle = "#7f8c8d";
-    ctx.fillRect(this.x, this.y, this.w, this.h);
+    ctx.fillRect(this.x - camX, this.y, this.w, this.h);
     ctx.fillStyle = "#c0392b";
-    ctx.fillRect(this.x, this.y, this.w, 8);
+    ctx.fillRect(this.x - camX, this.y, this.w, 8);
     ctx.restore();
   }
 }
 
+// BOSS：力維哥
 const boss = {
-  x: 650,
+  x: 2150,
   y: 310,
   w: 65,
   h: 90,
@@ -470,6 +737,8 @@ const boss = {
   update() {
     if (this.isDead) return;
     if (this.hitFlash > 0) this.hitFlash--;
+
+    if (Math.abs(this.x - player.x) > 850 && this.state === "IDLE") return;
 
     this.timer++;
     this.facing = (player.x < this.x) ? -1 : 1;
@@ -489,7 +758,7 @@ const boss = {
       this.vx = this.facing * 1.8;
       this.x += this.vx;
 
-      if (Math.abs(this.x - player.x) < 70) {
+      if (Math.abs(this.x - player.x) < 85) {
         this.state = "PUNCH";
         this.timer = 0;
       }
@@ -501,7 +770,9 @@ const boss = {
       this.vx = 0;
       if (this.timer === 20) {
         this.vx = this.facing * 5;
-        if (Math.abs(this.x - player.x) < 85 && Math.abs(this.y - player.y) < 60) {
+        const effectiveH = player.isCrouching ? player.crouchVisualH : player.h;
+        const playerTop = player.y + (player.h - effectiveH);
+        if (Math.abs(this.x - player.x) < 95 && playerTop < this.y + 65) {
           player.takeDamage(25);
         }
       }
@@ -518,10 +789,10 @@ const boss = {
       }
     } else if (this.state === "CHARGING") {
       this.x += this.vx;
-      if (Math.abs(this.x - player.x) < 55 && Math.abs(this.y - player.y) < 70) {
+      if (Math.abs(this.x - player.x) < 65 && Math.abs(this.y - player.y) < 75) {
         player.takeDamage(35);
       }
-      if (this.x <= 10 || this.x + this.w >= canvas.width - 10) {
+      if (this.x <= 1500 || this.x + this.w >= LEVEL_WIDTH - 10) {
         this.state = "STUNNED";
         this.timer = 0;
         this.vx = 0;
@@ -546,8 +817,9 @@ const boss = {
     }
   },
 
-  draw() {
+  draw(camX) {
     if (this.isDead) return;
+    const renderX = this.x - camX;
     ctx.save();
 
     if (this.hitFlash > 0) {
@@ -559,25 +831,25 @@ const boss = {
     } else {
       ctx.fillStyle = "#8e44ad";
     }
-    ctx.fillRect(this.x, this.y, this.w, this.h);
+    ctx.fillRect(renderX, this.y, this.w, this.h);
 
     ctx.fillStyle = "#d35400";
-    ctx.fillRect(this.facing === 1 ? this.x + this.w - 12 : this.x, this.y - 14, 12, 16);
+    ctx.fillRect(this.facing === 1 ? renderX + this.w - 12 : renderX, this.y - 14, 12, 16);
 
     if (this.state === "PUNCH" && this.timer >= 18 && this.timer <= 26) {
       ctx.fillStyle = "#c0392b";
-      const fistX = this.facing === 1 ? this.x + this.w : this.x - 30;
+      const fistX = this.facing === 1 ? renderX + this.w : renderX - 30;
       ctx.fillRect(fistX, this.y + 25, 30, 30);
     }
 
     ctx.fillStyle = "#333";
-    ctx.fillRect(this.x - 10, this.y - 25, this.w + 20, 8);
+    ctx.fillRect(renderX - 10, this.y - 25, this.w + 20, 8);
     ctx.fillStyle = "#e74c3c";
-    ctx.fillRect(this.x - 10, this.y - 25, ((this.hp / this.maxHp) * (this.w + 20)), 8);
+    ctx.fillRect(renderX - 10, this.y - 25, ((this.hp / this.maxHp) * (this.w + 20)), 8);
 
     ctx.fillStyle = "#fff";
     ctx.font = "12px sans-serif";
-    ctx.fillText("校園惡霸 - 力維哥", this.x - 10, this.y - 30);
+    ctx.fillText("校園惡霸 - 力維哥", renderX - 10, this.y - 30);
 
     ctx.restore();
   }
@@ -585,12 +857,16 @@ const boss = {
 
 function gameLoop() {
   player.update();
+  camera.update(player.x);
   boss.update();
 
   if (!boss.isDead) {
     minionSpawnTimer++;
-    if (minionSpawnTimer > 240 && minions.length < 3) {
-      minions.push(new Minion(Math.random() > 0.5 ? 20 : 760));
+    if (minionSpawnTimer > 210 && minions.length < 4) {
+      const spawnX = Math.random() > 0.5 ? camera.x + canvas.width + 40 : camera.x - 40;
+      if (spawnX > 0 && spawnX < LEVEL_WIDTH) {
+        minions.push(new Minion(spawnX));
+      }
       minionSpawnTimer = 0;
     }
   }
@@ -605,23 +881,40 @@ function gameLoop() {
     if (bullets[i].isDead) bullets.splice(i, 1);
   }
 
+  for (let i = fxEffects.length - 1; i >= 0; i--) {
+    fxEffects[i].update();
+    if (fxEffects[i].life <= 0) fxEffects.splice(i, 1);
+  }
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   ctx.fillStyle = "#273746";
   ctx.fillRect(0, 0, canvas.width, 400);
-  ctx.fillStyle = "#1e8449";
-  ctx.fillRect(260, 60, 280, 110);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "16px sans-serif";
-  ctx.fillText("三重國中 - 3年8班 (BOSS戰)", 300, 110);
+
+  for (let bx = 260; bx < LEVEL_WIDTH; bx += 600) {
+    if (bx + 280 > camera.x && bx < camera.x + canvas.width) {
+      ctx.fillStyle = "#1e8449";
+      ctx.fillRect(bx - camera.x, 60, 280, 110);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "16px sans-serif";
+      const roomNum = Math.floor(bx / 600) + 1;
+      ctx.fillText(`三重國中 - 3年${roomNum}班`, bx - camera.x + 60, 110);
+    }
+  }
 
   ctx.fillStyle = "#7f8c8d";
-  for (let p of platforms) ctx.fillRect(p.x, p.y, p.w, p.h);
+  for (let p of platforms) {
+    if (p.x + p.w > camera.x && p.x < camera.x + canvas.width) {
+      ctx.fillRect(p.x - camera.x, p.y, p.w, p.h);
+    }
+  }
 
-  for (let m of minions) m.draw();
-  boss.draw();
-  player.draw();
-  for (let b of bullets) b.draw();
+  for (let fx of fxEffects) fx.draw(camera.x);
+
+  for (let m of minions) m.draw(camera.x);
+  boss.draw(camera.x);
+  player.draw(camera.x);
+  for (let b of bullets) b.draw(camera.x);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "14px monospace";
@@ -632,6 +925,11 @@ function gameLoop() {
   ctx.fillRect(15, 55, 120, 8);
   ctx.fillStyle = "#2ecc71";
   ctx.fillRect(15, 55, (player.hp / player.maxHp) * 120, 8);
+
+  const progressPercent = Math.min(100, Math.round((player.x / (LEVEL_WIDTH - player.w)) * 100));
+  ctx.fillStyle = "#bdc3c7";
+  ctx.font = "12px monospace";
+  ctx.fillText(`關卡進度: ${progressPercent}%`, 15, 80);
 
   requestAnimationFrame(gameLoop);
 }
