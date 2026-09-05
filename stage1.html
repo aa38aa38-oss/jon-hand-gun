@@ -175,11 +175,11 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// --- 圖檔資源管理 ---
+// --- 圖檔資源載入 ---
 const imgPlayerStand = new Image();
 imgPlayerStand.src = "小江站立.png";
 let isStandLoaded = false;
-imgPlayerStand.onload = () => { isStandLoaded = true; };
+imgPlayerStand.onload = () => { isStandLoaded = true; player.initSize(); };
 
 const imgPlayerShoot = new Image();
 imgPlayerShoot.src = "小江射擊.png";
@@ -438,8 +438,10 @@ class Bullet {
 const player = {
   x: 80,
   y: 295,
+  baseH: 140,
   w: 110,
   h: 140,
+  crouchVisualH: 105,
   vx: 0,
   vy: 0,
   speed: 4.3,
@@ -464,6 +466,15 @@ const player = {
   hp: 100,
   maxHp: 100,
   invincible: 0,
+
+  initSize() {
+    if (imgPlayerStand.naturalWidth && imgPlayerStand.naturalHeight) {
+      const ratio = imgPlayerStand.naturalWidth / imgPlayerStand.naturalHeight;
+      this.w = Math.round(this.baseH * ratio);
+      this.h = this.baseH;
+      this.crouchVisualH = Math.round(this.baseH * 0.75);
+    }
+  },
 
   startDash(dir) {
     if (this.dashCooldown > 0 || this.isCrouching) return;
@@ -580,8 +591,11 @@ const player = {
   },
 
   fire() {
+    const drawH = this.isCrouching ? this.crouchVisualH : this.h;
+    const drawY = this.y + (this.h - drawH);
+
     let startX = this.x + (this.facing === 1 ? this.w * 0.95 : this.w * 0.05);
-    let startY = this.isCrouching ? this.y + this.h * 0.55 : this.y + this.h * 0.44;
+    let startY = this.isCrouching ? drawY + drawH * 0.48 : drawY + drawH * 0.44;
 
     this.shootAnimTimer = 8;
 
@@ -612,49 +626,42 @@ const player = {
 
     let targetImg = imgPlayerStand;
     let isLoaded = isStandLoaded;
+    let currentRenderH = this.h;
 
-    // 核心修正：503x263 的橫向寬幅圖檔，按高度 140 等比展開寬度為 268，對齊腳底與碰撞中心
-    let renderH = 140;
-    let renderW = 268;
-
-    if (this.isCrouching) {
-      if (isCrouchLoaded) {
-        targetImg = imgPlayerCrouch;
-        isLoaded = true;
-      }
+    if (this.isCrouching && isCrouchLoaded) {
+      targetImg = imgPlayerCrouch;
+      isLoaded = isCrouchLoaded;
+      currentRenderH = this.crouchVisualH;
     } else if (this.isDashing) {
       if (this.dashTimer > this.dashDuration / 2 && isDash1Loaded) {
         targetImg = imgPlayerDash1;
-        isLoaded = true;
+        isLoaded = isDash1Loaded;
       } else if (isDash2Loaded) {
         targetImg = imgPlayerDash2;
-        isLoaded = true;
+        isLoaded = isDash2Loaded;
       }
     } else if (this.shootAnimTimer > 0 && isShootLoaded) {
       targetImg = imgPlayerShoot;
-      isLoaded = true;
-    } else if (!this.isOnGround) {
-      if (isJumpLoaded) {
-        targetImg = imgPlayerJump;
-        isLoaded = true;
-      }
+      isLoaded = isShootLoaded;
+    } else if (!this.isOnGround && isJumpLoaded) {
+      targetImg = imgPlayerJump;
+      isLoaded = isJumpLoaded;
     }
 
-    const offsetX = (renderW - this.w) / 2;
-    const renderX = (this.x - offsetX) - camX;
-    const renderY = this.y;
+    const renderX = this.x - camX;
+    const renderY = this.y + (this.h - currentRenderH);
 
     if (isLoaded) {
       if (this.facing === -1) {
-        ctx.translate(renderX + renderW, renderY);
+        ctx.translate(renderX + this.w, renderY);
         ctx.scale(-1, 1);
-        ctx.drawImage(targetImg, 0, 0, renderW, renderH);
+        ctx.drawImage(targetImg, 0, 0, this.w, currentRenderH);
       } else {
-        ctx.drawImage(targetImg, renderX, renderY, renderW, renderH);
+        ctx.drawImage(targetImg, renderX, renderY, this.w, currentRenderH);
       }
     } else {
       ctx.fillStyle = this.isDashing ? "#f39c12" : (this.shootAnimTimer > 0) ? "#e74c3c" : "#3498db";
-      ctx.fillRect(this.x - camX, this.y, this.w, this.h);
+      ctx.fillRect(renderX, renderY, this.w, currentRenderH);
     }
 
     ctx.restore();
@@ -678,7 +685,8 @@ class Minion {
     if (this.x > player.x + 10) this.x -= this.speed;
     else if (this.x < player.x - 10) this.x += this.speed;
 
-    const playerTopY = player.isCrouching ? player.y + 40 : player.y;
+    const effectivePlayerH = player.isCrouching ? player.crouchVisualH : player.h;
+    const playerTopY = player.y + (player.h - effectivePlayerH);
 
     if (Math.abs(this.x - player.x) < (this.w + player.w) * 0.35 &&
         (this.y < player.y + player.h && this.y + this.h > playerTopY)) {
@@ -754,7 +762,8 @@ const boss = {
       this.vx = 0;
       if (this.timer === 20) {
         this.vx = this.facing * 5;
-        const playerTop = player.isCrouching ? player.y + 40 : player.y;
+        const effectiveH = player.isCrouching ? player.crouchVisualH : player.h;
+        const playerTop = player.y + (player.h - effectiveH);
         if (Math.abs(this.x - player.x) < 95 && playerTop < this.y + 65) {
           player.takeDamage(25);
         }
