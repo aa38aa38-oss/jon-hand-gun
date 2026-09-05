@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>小江打手槍 - 第一關：三重國中</title>
+<title>小江打手槍 - 第一關：三重國中 (含自動試玩除錯)</title>
 <style>
   * {
     box-sizing: border-box;
@@ -80,6 +80,23 @@
   #btn-jump   { right: 45px;  bottom: 110px; width: 62px; height: 62px; background: rgba(46, 204, 113, 0.4); }
   #btn-dash   { right: 35px;  bottom: 25px;  width: 52px; height: 52px; }
   #btn-weapon { right: 125px; bottom: 125px; width: 52px; height: 52px; font-size: 13px; background: rgba(52, 152, 219, 0.4); }
+
+  /* 自動試玩切換按鈕 */
+  #bot-toggle-btn {
+    pointer-events: auto;
+    position: absolute;
+    top: 12px;
+    right: 15px;
+    background: rgba(39, 174, 96, 0.85);
+    border: 1px solid #2ecc71;
+    color: #fff;
+    font-size: 13px;
+    font-family: sans-serif;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 20;
+  }
 </style>
 </head>
 <body>
@@ -88,6 +105,8 @@
   <canvas id="gameCanvas" width="800" height="450"></canvas>
   
   <div id="touch-controls">
+    <button id="bot-toggle-btn">🤖 自動試玩測試：關閉</button>
+
     <!-- 左側方向鍵 -->
     <div class="v-btn" id="btn-up" data-code="KeyW">▲</div>
     <div class="v-btn" id="btn-down" data-code="KeyS">▼</div>
@@ -106,35 +125,33 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// 鍵盤輸入監聽
+// 鍵盤輸入狀態物件
 const keys = {};
 window.addEventListener("keydown", (e) => {
   keys[e.code] = true;
   if (e.code === "Digit1") player.weapon = "PISTOL";
   if (e.code === "Digit2") player.weapon = "SHOTGUN";
+  if (e.code === "KeyT") toggleAutoBot();
 });
 window.addEventListener("keyup", (e) => {
   keys[e.code] = false;
 });
 
-// 手機多點觸控事件映射
+// 手機多點觸控映射
 const touchButtons = document.querySelectorAll(".v-btn[data-code]");
 touchButtons.forEach((btn) => {
   const code = btn.getAttribute("data-code");
-  
   btn.addEventListener("touchstart", (e) => {
     e.preventDefault();
-    keys[code] = true;
+    if (!autoBot.enabled) keys[code] = true;
   }, { passive: false });
-
   btn.addEventListener("touchend", (e) => {
     e.preventDefault();
-    keys[code] = false;
+    if (!autoBot.enabled) keys[code] = false;
   }, { passive: false });
-
   btn.addEventListener("touchcancel", (e) => {
     e.preventDefault();
-    keys[code] = false;
+    if (!autoBot.enabled) keys[code] = false;
   }, { passive: false });
 });
 
@@ -145,17 +162,17 @@ weaponBtn.addEventListener("touchstart", (e) => {
   player.weapon = (player.weapon === "PISTOL") ? "SHOTGUN" : "PISTOL";
 }, { passive: false });
 
-// 徹底阻止網頁觸控彈性滾動、縮放
+// 阻絕原生滑動與縮放
 document.addEventListener("touchmove", (e) => {
   e.preventDefault();
 }, { passive: false });
 
-// 地形平台（三重國中教室課桌椅與走廊講台）
+// 地形平台
 const platforms = [
-  { x: 0, y: 400, w: 800, h: 50 },      // 地面
-  { x: 120, y: 310, w: 140, h: 15 },   // 課桌平台1
-  { x: 330, y: 240, w: 150, h: 15 },   // 講台上方浮台
-  { x: 550, y: 310, w: 140, h: 15 }    // 課桌平台2
+  { x: 0, y: 400, w: 800, h: 50 },
+  { x: 120, y: 310, w: 140, h: 15 },
+  { x: 330, y: 240, w: 150, h: 15 },
+  { x: 550, y: 310, w: 140, h: 15 }
 ];
 
 // 子彈系統
@@ -176,7 +193,7 @@ class Bullet {
     this.x += this.vx;
     this.y += this.vy;
     this.life--;
-    if (this.life <= 0 || this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+    if (this.life <= 0 || this.x < -20 || this.x > canvas.width + 20 || this.y < -20 || this.y > canvas.height + 20) {
       this.isDead = true;
     }
   }
@@ -217,15 +234,9 @@ const player = {
   update() {
     if (this.dashCooldown > 0) this.dashCooldown--;
 
-    // 姿態：蹲下判定
     const isDownPressed = keys["KeyS"] || keys["ArrowDown"];
-    if (isDownPressed && this.isOnGround) {
-      this.isCrouching = true;
-    } else {
-      this.isCrouching = false;
-    }
+    this.isCrouching = isDownPressed && this.isOnGround;
 
-    // 左右移動
     const isLeft = keys["KeyA"] || keys["ArrowLeft"];
     const isRight = keys["KeyD"] || keys["ArrowRight"];
     let moveSpeed = this.isCrouching ? 0 : this.speed;
@@ -241,7 +252,6 @@ const player = {
       if (Math.abs(this.vx) < 0.2) this.vx = 0;
     }
 
-    // 衝刺機制
     const isDashPressed = keys["KeyL"] || keys["ShiftLeft"];
     if (isDashPressed && this.dashCooldown === 0 && !this.isCrouching) {
       this.isDashing = true;
@@ -254,14 +264,12 @@ const player = {
       if (this.dashTimer <= 0) this.isDashing = false;
     }
 
-    // 跳躍
     const isJumpPressed = keys["KeyK"] || keys["Space"];
     if (isJumpPressed && this.isOnGround && !this.isCrouching) {
       this.vy = this.jumpForce;
       this.isOnGround = false;
     }
 
-    // 越南大戰射擊朝向計算（支援純仰射、45度斜射、空中下壓射擊）
     const isUpPressed = keys["KeyW"] || keys["ArrowUp"];
     let dirX = this.facing;
     let dirY = 0;
@@ -276,7 +284,6 @@ const player = {
     const len = Math.hypot(dirX, dirY) || 1;
     this.aimDir = { x: dirX / len, y: dirY / len };
 
-    // 物理與平台碰撞計算
     this.vy += this.gravity;
     this.x += this.vx;
     this.y += this.vy;
@@ -294,11 +301,9 @@ const player = {
       }
     }
 
-    // 地圖左右邊界防穿出
     if (this.x < 0) this.x = 0;
     if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
 
-    // 射擊冷卻與開火
     if (this.shootCooldown > 0) this.shootCooldown--;
     if (keys["KeyJ"] && this.shootCooldown === 0) {
       this.fire();
@@ -319,7 +324,6 @@ const player = {
       bullets.push(new Bullet(startX, startY, this.aimDir.x * 12, this.aimDir.y * 12, 12, "PISTOL"));
       this.shootCooldown = 11;
     } else if (this.weapon === "SHOTGUN") {
-      // 5向扇形射擊
       for (let offset of [-0.25, -0.12, 0, 0.12, 0.25]) {
         const spreadX = this.aimDir.x * Math.cos(offset) - this.aimDir.y * Math.sin(offset);
         const spreadY = this.aimDir.x * Math.sin(offset) + this.aimDir.y * Math.cos(offset);
@@ -333,17 +337,14 @@ const player = {
     const currentHeight = this.isCrouching ? this.crouchH : this.h;
     ctx.save();
 
-    // 小江身體
     ctx.fillStyle = this.isCrouching ? "#2980b9" : "#3498db";
     ctx.fillRect(this.x, this.y, this.w, currentHeight);
 
-    // 頭部識別框
     ctx.fillStyle = "#f39c12";
     const headSize = 14;
     const headX = this.facing === 1 ? this.x + this.w - headSize : this.x;
     ctx.fillRect(headX, this.y + 4, headSize, headSize);
 
-    // 槍口射擊朝向指示
     let muzzleX = this.x + (this.facing === 1 ? this.w : 0);
     let muzzleY = this.y + currentHeight * 0.35;
     if (this.aimDir.y === -1 && this.aimDir.x === 0) {
@@ -361,7 +362,7 @@ const player = {
   }
 };
 
-// 測試靶子（校園不良少年假人）
+// 測試假人
 const dummy = {
   x: 680,
   y: 336,
@@ -388,7 +389,6 @@ const dummy = {
     ctx.fillStyle = this.hitFlash > 0 ? "#ffffff" : "#c0392b";
     ctx.fillRect(this.x, this.y, this.w, this.h);
 
-    // 血條
     ctx.fillStyle = "#555";
     ctx.fillRect(this.x - 5, this.y - 14, 50, 6);
     ctx.fillStyle = "#2ecc71";
@@ -397,8 +397,84 @@ const dummy = {
   }
 };
 
+// --- 自動試玩壓力測試模組 (AI Auto-Tester) ---
+const autoBot = {
+  enabled: false,
+  frameCounter: 0,
+  errorLogs: [],
+  
+  update() {
+    if (!this.enabled) return;
+    this.frameCounter++;
+
+    // 1. 每 15 幀隨機變更行為指令
+    if (this.frameCounter % 15 === 0) {
+      keys["KeyA"] = Math.random() < 0.45;
+      keys["KeyD"] = Math.random() < 0.55;
+      keys["KeyW"] = Math.random() < 0.3;
+      keys["KeyS"] = Math.random() < 0.25;
+      keys["KeyK"] = Math.random() < 0.35; // 隨機跳躍
+      keys["KeyL"] = Math.random() < 0.2;  // 隨機衝刺
+      keys["KeyJ"] = Math.random() < 0.85; // 高頻率隨機射擊
+    }
+
+    // 2. 每 60 幀隨機切換武器
+    if (this.frameCounter % 60 === 0) {
+      player.weapon = Math.random() > 0.5 ? "SHOTGUN" : "PISTOL";
+    }
+
+    // 3. 防呆與邊界檢查監控
+    this.runSanityChecks();
+  },
+
+  runSanityChecks() {
+    const pHeight = player.isCrouching ? player.crouchH : player.h;
+    
+    // 檢查 1: 穿透地圖底部
+    if (player.y + pHeight > 405) {
+      this.logError(`[物理異常] 小江掉出地圖底部: Y=${player.y.toFixed(1)}`);
+    }
+
+    // 檢查 2: 突破天花板或 X 坐標異常
+    if (player.y < -100 || isNaN(player.y)) {
+      this.logError(`[數值溢出] Y坐標錯誤或浮空過高: Y=${player.y}`);
+    }
+
+    // 檢查 3: 子彈洩漏堆疊 (超過 100 發表示回收機制失效)
+    if (bullets.length > 100) {
+      this.logError(`[記憶體洩漏警告] 子彈總量異常堆疊: ${bullets.length} 發`);
+    }
+  },
+
+  logError(msg) {
+    if (!this.errorLogs.includes(msg)) {
+      this.errorLogs.push(msg);
+      console.error(msg);
+    }
+  }
+};
+
+// 切換自動測試開關
+const botToggleBtn = document.getElementById("bot-toggle-btn");
+function toggleAutoBot() {
+  autoBot.enabled = !autoBot.enabled;
+  if (autoBot.enabled) {
+    botToggleBtn.innerText = "🤖 自動試玩測試：進行中 (按T關閉)";
+    botToggleBtn.style.background = "rgba(231, 76, 60, 0.9)";
+  } else {
+    botToggleBtn.innerText = "🤖 自動試玩測試：關閉";
+    botToggleBtn.style.background = "rgba(39, 174, 96, 0.85)";
+    // 關閉時清空所有按鍵
+    for (let k in keys) keys[k] = false;
+  }
+}
+botToggleBtn.addEventListener("click", toggleAutoBot);
+
 // 主遊戲迴圈
 function gameLoop() {
+  // 自動機器人邏輯更新
+  autoBot.update();
+
   player.update();
   dummy.update();
   for (let i = bullets.length - 1; i >= 0; i--) {
@@ -408,7 +484,7 @@ function gameLoop() {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 繪製三重國中黑板與背景
+  // 背景與黑板
   ctx.fillStyle = "#273746";
   ctx.fillRect(0, 0, canvas.width, 400);
   ctx.fillStyle = "#1e8449";
@@ -417,13 +493,13 @@ function gameLoop() {
   ctx.font = "16px sans-serif";
   ctx.fillText("三重國中 - 3年8班", 330, 110);
 
-  // 繪製地圖平台
+  // 平台
   ctx.fillStyle = "#7f8c8d";
   for (let p of platforms) {
     ctx.fillRect(p.x, p.y, p.w, p.h);
   }
 
-  // 繪製實體
+  // 角色與物件
   dummy.draw();
   player.draw();
   for (let b of bullets) {
@@ -435,6 +511,25 @@ function gameLoop() {
   ctx.font = "14px monospace";
   ctx.fillText(`武器: ${player.weapon}`, 15, 25);
   ctx.fillText(`狀態: ${player.isCrouching ? "蹲下" : player.isDashing ? "衝刺中" : "站立"}`, 15, 45);
+
+  // 測試監控儀表板
+  if (autoBot.enabled) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+    ctx.fillRect(10, 60, 230, 95);
+    ctx.fillStyle = "#2ecc71";
+    ctx.font = "12px monospace";
+    ctx.fillText(`測試運行幀數: ${autoBot.frameCounter}`, 20, 80);
+    ctx.fillText(`目前畫面上子彈數: ${bullets.length}`, 20, 100);
+    ctx.fillText(`小江坐標: (${player.x.toFixed(0)}, ${player.y.toFixed(0)})`, 20, 120);
+
+    if (autoBot.errorLogs.length > 0) {
+      ctx.fillStyle = "#e74c3c";
+      ctx.fillText(`偵測到異常: ${autoBot.errorLogs[autoBot.errorLogs.length - 1]}`, 20, 140);
+    } else {
+      ctx.fillStyle = "#f1c40f";
+      ctx.fillText(`狀態檢查: 正常 (無穿透/無洩漏)`, 20, 140);
+    }
+  }
 
   requestAnimationFrame(gameLoop);
 }
