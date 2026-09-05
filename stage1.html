@@ -23,7 +23,6 @@
     align-items: center;
     justify-content: center;
   }
-  /* 主容器：橫向三欄佈局 (左控制區 - 中間遊戲 - 右動作區) */
   #main-layout {
     display: flex;
     flex-direction: row;
@@ -33,7 +32,6 @@
     height: 100vh;
     background-color: #050505;
   }
-  /* 左右兩側獨立控制面板 */
   .control-panel {
     position: relative;
     width: 130px;
@@ -45,7 +43,6 @@
     justify-content: center;
     z-index: 10;
   }
-  /* 中間遊戲視窗容器 */
   #canvas-container {
     flex: 1;
     height: 100%;
@@ -64,7 +61,30 @@
     object-fit: contain;
     box-shadow: 0 0 15px rgba(0,0,0,0.8);
   }
-  /* 虛擬按鈕統一樣式 */
+  /* 返回首頁按鈕 */
+  #home-btn {
+    position: absolute;
+    top: 14px;
+    right: 12px;
+    background: rgba(52, 73, 94, 0.85);
+    border: 1px solid #7f8c8d;
+    color: #ecf0f1;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    transition: background 0.2s;
+  }
+  #home-btn:active {
+    background: #e67e22;
+    border-color: #f39c12;
+  }
   .v-btn {
     position: absolute;
     background: rgba(255, 255, 255, 0.2);
@@ -83,19 +103,16 @@
     background: rgba(243, 156, 18, 0.7);
     border-color: #f39c12;
   }
-  /* 左側十字方向鍵 (集中在左側黑邊面板內) */
   #btn-up    { left: 41px; bottom: 135px; width: 48px; height: 48px; }
   #btn-down  { left: 41px; bottom: 35px;  width: 48px; height: 48px; }
   #btn-left  { left: 8px;  bottom: 85px;  width: 48px; height: 48px; }
   #btn-right { left: 74px; bottom: 85px;  width: 48px; height: 48px; }
 
-  /* 右側動作按鈕 (集中在右側黑邊面板內) */
   #btn-shoot  { left: 10px; bottom: 40px;  width: 54px; height: 54px; background: rgba(231, 76, 60, 0.45); }
   #btn-jump   { right: 10px; bottom: 105px; width: 54px; height: 54px; background: rgba(46, 204, 113, 0.45); }
   #btn-dash   { right: 10px; bottom: 35px;  width: 46px; height: 46px; }
   #btn-weapon { left: 10px; bottom: 115px; width: 48px; height: 48px; font-size: 12px; background: rgba(52, 152, 219, 0.45); }
 
-  /* 結算過場面板 */
   #victory-panel {
     display: none;
     position: absolute;
@@ -130,7 +147,6 @@
 <body>
 
 <div id="main-layout">
-  <!-- 左側控制面板：完全移出遊戲畫面外 -->
   <div class="control-panel" id="left-panel">
     <div class="v-btn" id="btn-up" data-code="KeyW">▲</div>
     <div class="v-btn" id="btn-down" data-code="KeyS">▼</div>
@@ -138,7 +154,6 @@
     <div class="v-btn" id="btn-right" data-code="KeyD">▶</div>
   </div>
 
-  <!-- 中間遊戲畫布 -->
   <div id="canvas-container">
     <canvas id="gameCanvas" width="800" height="450"></canvas>
     <div id="victory-panel">
@@ -148,8 +163,10 @@
     </div>
   </div>
 
-  <!-- 右側動作面板：完全移出遊戲畫面外 -->
   <div class="control-panel" id="right-panel">
+    <!-- 返回首頁按鈕 -->
+    <a href="index.html" id="home-btn">🏠 首頁</a>
+
     <div class="v-btn" id="btn-shoot" data-code="KeyJ">射擊</div>
     <div class="v-btn" id="btn-jump" data-code="KeyK">跳躍</div>
     <div class="v-btn" id="btn-dash" data-code="KeyL">衝刺</div>
@@ -171,7 +188,6 @@ window.addEventListener("keyup", (e) => {
   keys[e.code] = false;
 });
 
-// 手機多點觸控映射
 const touchButtons = document.querySelectorAll(".v-btn[data-code]");
 touchButtons.forEach((btn) => {
   const code = btn.getAttribute("data-code");
@@ -187,7 +203,6 @@ document.getElementById("btn-weapon").addEventListener("touchstart", (e) => {
 
 document.addEventListener("touchmove", (e) => { e.preventDefault(); }, { passive: false });
 
-// 地圖平台（三重國中教室課桌椅）
 const platforms = [
   { x: 0, y: 400, w: 800, h: 50 },
   { x: 120, y: 310, w: 140, h: 15 },
@@ -224,7 +239,6 @@ class Bullet {
   }
 }
 
-// 主角小江
 const player = {
   x: 80,
   y: 330,
@@ -390,7 +404,6 @@ const player = {
   }
 };
 
-// 校園不良雜兵
 const minions = [];
 let minionSpawnTimer = 0;
 
@@ -430,7 +443,6 @@ class Minion {
   }
 }
 
-// 第一關 BOSS：力維哥
 const boss = {
   x: 650,
   y: 310,
