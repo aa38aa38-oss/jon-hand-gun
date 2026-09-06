@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>小江打手槍 - 第一關：三重國中</title>
 <style>
   * {
@@ -31,6 +31,7 @@
     width: 100vw;
     height: 100vh;
     background-color: #050505;
+    touch-action: none;
   }
   .control-panel {
     position: relative;
@@ -42,6 +43,7 @@
     align-items: center;
     justify-content: center;
     z-index: 10;
+    touch-action: none;
   }
   #canvas-container {
     flex: 1;
@@ -51,6 +53,7 @@
     justify-content: center;
     overflow: hidden;
     position: relative;
+    touch-action: none;
   }
   canvas {
     display: block;
@@ -60,6 +63,7 @@
     aspect-ratio: 16 / 9;
     object-fit: contain;
     box-shadow: 0 0 15px rgba(0,0,0,0.8);
+    touch-action: none;
   }
   #home-btn {
     position: absolute;
@@ -79,6 +83,7 @@
     justify-content: center;
     z-index: 20;
     transition: background 0.2s;
+    touch-action: manipulation;
   }
   #home-btn:active {
     background: #e67e22;
@@ -188,6 +193,7 @@
     background-repeat: no-repeat;
     background-color: #000;
     z-index: 70;
+    touch-action: none;
   }
   #rescue-box {
     position: absolute;
@@ -203,6 +209,7 @@
     color: #fff;
     font-family: sans-serif;
     box-shadow: 0 0 28px rgba(231, 76, 60, 0.75);
+    touch-action: auto;
   }
   #rescue-box p {
     font-size: 17px;
@@ -713,11 +720,35 @@ window.addEventListener("keyup", (e) => {
   keys[e.code] = false;
 });
 
+// --- 控制面板防雙擊縮放事件攔截（徹底封鎖 AA 處空隙雙擊放大） ---
+const leftPanel = document.getElementById("left-panel");
+const rightPanel = document.getElementById("right-panel");
+
+[leftPanel, rightPanel].forEach(panel => {
+  ["touchstart", "touchend", "touchmove"].forEach(eventType => {
+    panel.addEventListener(eventType, (e) => {
+      // 若點擊的是首頁跳轉按鈕則允許導向，其餘面板背景與按鈕皆全面阻止預設縮放手勢
+      if (e.target.id === "home-btn" || e.target.closest("#home-btn")) {
+        return;
+      }
+      e.preventDefault();
+    }, { passive: false });
+  });
+});
+
+// 確保首頁按鈕在手機端依然順暢跳轉
+const homeBtn = document.getElementById("home-btn");
+homeBtn.addEventListener("touchstart", (e) => {
+  e.stopPropagation();
+  window.location.href = "index.html";
+}, { passive: false });
+
 const touchButtons = document.querySelectorAll(".v-btn[data-code]");
 touchButtons.forEach((btn) => {
   const code = btn.getAttribute("data-code");
   btn.addEventListener("touchstart", (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (isGamePaused || player.isDying) return;
     if (isShootKey(code)) player.tryRapidFire();
     if (isJumpKey(code)) player.tryJump();
@@ -729,23 +760,40 @@ touchButtons.forEach((btn) => {
 
   btn.addEventListener("touchend", (e) => {
     e.preventDefault();
+    e.stopPropagation();
     keys[code] = false;
   }, { passive: false });
 
   btn.addEventListener("touchcancel", (e) => {
     e.preventDefault();
+    e.stopPropagation();
     keys[code] = false;
   }, { passive: false });
 });
 
 document.getElementById("btn-weapon").addEventListener("touchstart", (e) => {
   e.preventDefault();
+  e.stopPropagation();
   if (isGamePaused || player.isDying) return;
   if (!hasUnlockedShotgun) return;
   player.weapon = (player.weapon === "PISTOL") ? "SHOTGUN" : "PISTOL";
 }, { passive: false });
 
-document.addEventListener("touchmove", (e) => { e.preventDefault(); }, { passive: false });
+document.addEventListener("touchmove", (e) => { 
+  if (e.target.closest("#rescue-box")) return;
+  e.preventDefault(); 
+}, { passive: false });
+
+// 防止 iOS 快速連點全域縮放
+let lastGlobalTouchEnd = 0;
+document.addEventListener("touchend", (e) => {
+  if (e.target.closest("#rescue-box")) return;
+  const now = Date.now();
+  if (now - lastGlobalTouchEnd <= 300) {
+    e.preventDefault();
+  }
+  lastGlobalTouchEnd = now;
+}, { passive: false });
 
 const LEVEL_WIDTH = 6400;
 
