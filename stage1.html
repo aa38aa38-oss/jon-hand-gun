@@ -720,14 +720,12 @@ window.addEventListener("keyup", (e) => {
   keys[e.code] = false;
 });
 
-// --- 控制面板防雙擊縮放事件攔截（徹底封鎖 AA 處空隙雙擊放大） ---
 const leftPanel = document.getElementById("left-panel");
 const rightPanel = document.getElementById("right-panel");
 
 [leftPanel, rightPanel].forEach(panel => {
   ["touchstart", "touchend", "touchmove"].forEach(eventType => {
     panel.addEventListener(eventType, (e) => {
-      // 若點擊的是首頁跳轉按鈕則允許導向，其餘面板背景與按鈕皆全面阻止預設縮放手勢
       if (e.target.id === "home-btn" || e.target.closest("#home-btn")) {
         return;
       }
@@ -736,7 +734,6 @@ const rightPanel = document.getElementById("right-panel");
   });
 });
 
-// 確保首頁按鈕在手機端依然順暢跳轉
 const homeBtn = document.getElementById("home-btn");
 homeBtn.addEventListener("touchstart", (e) => {
   e.stopPropagation();
@@ -784,7 +781,6 @@ document.addEventListener("touchmove", (e) => {
   e.preventDefault(); 
 }, { passive: false });
 
-// 防止 iOS 快速連點全域縮放
 let lastGlobalTouchEnd = 0;
 document.addEventListener("touchend", (e) => {
   if (e.target.closest("#rescue-box")) return;
@@ -1787,7 +1783,7 @@ class HotdogBomb {
   }
 }
 
-// --- BOSS 香蕉彈幕類別 ---
+// --- BOSS 香蕉彈幕類別（面積加大為 52x52，旋轉速度降至 0.05） ---
 const bossBananas = [];
 
 class BossBanana {
@@ -1797,10 +1793,10 @@ class BossBanana {
     this.vx = vx;
     this.vy = vy;
     this.bananaType = bananaType;
-    this.w = 34;
-    this.h = 34;
+    this.w = 52;
+    this.h = 52;
     this.rotation = Math.random() * Math.PI * 2;
-    this.rotSpeed = 0.15 * (vx > 0 ? 1 : -1);
+    this.rotSpeed = 0.05 * (vx > 0 ? 1 : -1);
     this.isDead = false;
   }
 
@@ -1816,7 +1812,7 @@ class BossBanana {
 
     const playerCenterX = player.x + player.w / 2;
     const playerCenterY = player.y + player.h / 2;
-    if (Math.hypot(this.x - playerCenterX, this.y - playerCenterY) < 36) {
+    if (Math.hypot(this.x - playerCenterX, this.y - playerCenterY) < 48) {
       player.takeDamage(16);
       this.isDead = true;
     }
@@ -1836,7 +1832,7 @@ class BossBanana {
     } else {
       ctx.fillStyle = "#f1c40f";
       ctx.beginPath();
-      ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.arc(0, 0, 20, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = "#e67e22";
       ctx.lineWidth = 2;
