@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>小江打手槍 - 遊戲主選單</title>
+<title>小江打手槍 - 第一關：三重國中</title>
 <style>
   * {
     box-sizing: border-box;
@@ -16,106 +16,2195 @@
     padding: 0;
     width: 100vw;
     height: 100vh;
-    overflow-x: hidden;
-    background: radial-gradient(circle at center, #1b2838 0%, #080d15 100%);
-    color: #fff;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif;
+    overflow: hidden;
+    background-color: #000;
+    touch-action: none;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
   }
-  .menu-container {
-    width: 90%;
-    max-width: 580px;
-    background: rgba(16, 24, 38, 0.88);
-    border: 2px solid #f39c12;
-    border-radius: 12px;
-    padding: 24px 20px;
-    text-align: center;
-    box-shadow: 0 0 25px rgba(243, 156, 18, 0.35);
-  }
-  h1 {
-    margin: 0 0 8px 0;
-    font-size: 32px;
-    letter-spacing: 3px;
-    color: #f1c40f;
-    text-shadow: 0 0 10px rgba(241, 196, 15, 0.6), 2px 2px 0 #c0392b;
-  }
-  .subtitle {
-    font-size: 13px;
-    color: #95a5a6;
-    margin-bottom: 20px;
-    letter-spacing: 1px;
-  }
-  .btn-group {
+  #main-layout {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 24px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100vw;
+    height: 100vh;
+    background-color: #050505;
   }
-  .menu-btn {
+  .control-panel {
+    position: relative;
+    width: 130px;
+    height: 100%;
+    flex-shrink: 0;
+    background: #0d1117;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  #canvas-container {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  canvas {
     display: block;
+    background: #1c2833;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: contain;
+    box-shadow: 0 0 15px rgba(0,0,0,0.8);
+  }
+  #home-btn {
+    position: absolute;
+    top: 14px;
+    right: 12px;
+    background: rgba(52, 73, 94, 0.85);
+    border: 1px solid #7f8c8d;
+    color: #ecf0f1;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    transition: background 0.2s;
+  }
+  #home-btn:active {
+    background: #e67e22;
+    border-color: #f39c12;
+  }
+  .v-btn {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    color: #fff;
+    font-weight: bold;
+    font-size: 16px;
+    font-family: sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+  }
+  .v-btn:active {
+    background: rgba(243, 156, 18, 0.7);
+    border-color: #f39c12;
+  }
+  #btn-up    { left: 41px; bottom: 135px; width: 48px; height: 48px; font-size: 13px; }
+  #btn-down  { left: 41px; bottom: 35px;  width: 48px; height: 48px; }
+  #btn-left  { left: 8px;  bottom: 85px;  width: 48px; height: 48px; }
+  #btn-right { left: 74px; bottom: 85px;  width: 48px; height: 48px; }
+
+  #btn-shoot  { left: 10px; bottom: 40px;  width: 54px; height: 54px; background: rgba(231, 76, 60, 0.45); }
+  #btn-jump   { right: 10px; bottom: 105px; width: 54px; height: 54px; background: rgba(46, 204, 113, 0.45); }
+  #btn-dash   { right: 10px; bottom: 35px;  width: 46px; height: 46px; }
+  #btn-weapon { left: 10px; bottom: 115px; width: 48px; height: 48px; font-size: 12px; background: rgba(52, 152, 219, 0.45); }
+
+  .dialog-panel {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(15, 23, 42, 0.95);
+    border: 3px solid #f39c12;
+    border-radius: 12px;
+    padding: 20px 24px;
+    text-align: center;
+    color: #fff;
+    font-family: sans-serif;
+    z-index: 60;
+    max-width: 420px;
+    box-shadow: 0 0 25px rgba(243, 156, 18, 0.6);
+  }
+  .dialog-panel h3 { margin: 0 0 10px 0; color: #f1c40f; font-size: 18px; }
+  .dialog-panel p { font-size: 14px; line-height: 1.6; color: #ecf0f1; margin: 0 0 15px 0; }
+  .dialog-btn {
+    background: #e67e22;
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .dialog-btn:active { background: #d35400; }
+
+  #victory-panel {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(20, 20, 20, 0.95);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    color: #fff;
+    font-family: sans-serif;
+    z-index: 50;
+    min-width: 320px;
+    border: 3px solid #f1c40f;
+    box-shadow: 0 0 30px rgba(241, 196, 15, 0.5);
+  }
+  #victory-panel h2 { color: #f1c40f; margin: 0 0 10px 0; }
+  #victory-panel p { color: #ff7675; font-size: 15px; font-weight: bold; line-height: 1.6; }
+  .end-btn {
+    background: #e67e22;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 15px;
+  }
+
+  /* 戰敗畫面與左下角放大版接關對話框樣式 */
+  #defeat-screen {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    padding: 13px 0;
+    height: 100%;
+    background-image: url('戰敗畫面.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #000;
+    z-index: 70;
+  }
+  #rescue-box {
+    position: absolute;
+    left: 4%;
+    bottom: 6%;
+    width: 46%;
+    min-width: 360px;
+    max-width: 480px;
+    background: rgba(20, 8, 8, 0.92);
+    border: 3px solid #e74c3c;
+    border-radius: 14px;
+    padding: 22px 24px;
+    color: #fff;
+    font-family: sans-serif;
+    box-shadow: 0 0 28px rgba(231, 76, 60, 0.75);
+  }
+  #rescue-box p {
     font-size: 17px;
     font-weight: bold;
-    color: #fff;
-    text-decoration: none;
-    border-radius: 8px;
-    transition: transform 0.1s, background-color 0.2s;
-    border: 1px solid rgba(255,255,255,0.15);
-  }
-  .btn-start {
-    background: linear-gradient(180deg, #e67e22 0%, #d35400 100%);
-    border: 1px solid #f39c12;
-    box-shadow: 0 4px 10px rgba(211, 84, 0, 0.4);
-    font-size: 19px;
-  }
-  .btn-stage {
-    background: #2c3e50;
-  }
-  .menu-btn:active {
-    transform: scale(0.97);
-    filter: brightness(1.2);
-  }
-  .info-box {
-    background: rgba(0, 0, 0, 0.45);
-    border-radius: 8px;
-    padding: 12px 14px;
-    font-size: 12px;
-    color: #bdc3c7;
-    text-align: left;
     line-height: 1.6;
+    margin: 0 0 14px 0;
+    color: #ffeaa7;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
   }
-  .info-title {
-    color: #f39c12;
+  #rescue-input-row {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+  }
+  #rescue-input {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 2px solid #c0392b;
+    background: #110505;
+    color: #f1c40f;
+    font-size: 16px;
     font-weight: bold;
-    margin-bottom: 4px;
-    text-align: center;
+    outline: none;
+  }
+  #rescue-input:focus {
+    border-color: #f39c12;
+    box-shadow: 0 0 10px #f39c12;
+  }
+  #rescue-submit {
+    background: #c0392b;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  #rescue-submit:active {
+    background: #e74c3c;
+  }
+  #rescue-error {
+    display: none;
+    color: #ff7675;
+    font-size: 14px;
+    margin-top: 10px;
+    font-weight: bold;
   }
 </style>
 </head>
 <body>
 
-<div class="menu-container">
-  <h1>小江打手槍</h1>
-  <div class="subtitle">2D 街機動作橫向射擊 - 關卡傳送門</div>
-
-  <div class="btn-group">
-    <a href="stage1.html" class="menu-btn btn-start">🚀 從頭開始遊戲</a>
-    <a href="stage1.html" class="menu-btn btn-stage">第一關：三重國中 (BOSS 力維哥)</a>
-    <a href="stage2.html" class="menu-btn btn-stage">第二關：三重集美街 (BOSS 加拿大老謝)</a>
-    <a href="stage3.html" class="menu-btn btn-stage">第三關：泰國曼谷街景 (BOSS 惡魔小江)</a>
+<div id="main-layout">
+  <div class="control-panel" id="left-panel">
+    <div class="v-btn" id="btn-up" data-code="KeyW">跳</div>
+    <div class="v-btn" id="btn-down" data-code="KeyS">▼</div>
+    <div class="v-btn" id="btn-left" data-code="KeyA">◀</div>
+    <div class="v-btn" id="btn-right" data-code="KeyD">▶</div>
   </div>
 
-  <div class="info-box">
-    <div class="info-title">【操作指南】</div>
-    <div>• 移動與瞄準：A / D 左右移動、W 向上瞄準、S 蹲下避彈</div>
-    <div>• 戰鬥動作：J 射擊、K / 空白鍵 跳躍、L 衝刺、數字鍵切換武器</div>
-    <div>• 手機支援：開啟手機自動旋轉橫向全螢幕，畫面兩側備有虛擬觸控按鈕。</div>
+  <div id="canvas-container">
+    <canvas id="gameCanvas" width="800" height="450"></canvas>
+
+    <div id="dialog-intro" class="dialog-panel" style="display: block;">
+      <h3>🎯 任務開始</h3>
+      <p>小江：「三重國中被熱狗汙染了，我必須用我的手槍淨化這一切」</p>
+      <button class="dialog-btn" onclick="startIntro()">出發淨化</button>
+    </div>
+
+    <div id="dialog-boss-intro" class="dialog-panel">
+      <h3>👹 校園惡霸現身</h3>
+      <p>校園惡霸 - 力維哥：「胖子，還在打手槍阿，我請你吃香蕉」</p>
+      <button class="dialog-btn" onclick="closeBossIntro()">來吧！</button>
+    </div>
+
+    <div id="dialog-step1" class="dialog-panel">
+      <h3>📜 天意降臨</h3>
+      <p>「小江你打手槍的努力感動了天，我決定送你一管大槍，請你繼續打手槍」</p>
+      <button class="dialog-btn" onclick="nextDialog(2)">繼續</button>
+    </div>
+
+    <div id="dialog-step2" class="dialog-panel">
+      <h3>💬 小江的覺悟</h3>
+      <p>「我不會辜負你們的期望，我會努力打手槍，守護三重國中的愛與和平」</p>
+      <button class="dialog-btn" onclick="nextDialog(3)">接下大槍</button>
+    </div>
+
+    <div id="dialog-weapon-hint" class="dialog-panel">
+      <h3>🔥 武器升級！</h3>
+      <p>已自動換上【散彈槍 (SHOTGUN)】！<br>可按右側【換槍鍵】或鍵盤【1 / 2】隨時切換！</p>
+      <button class="dialog-btn" onclick="closeWeaponHint()">確認出擊</button>
+    </div>
+
+    <div id="victory-panel">
+      <h2>🎉 第一關 突破！</h2>
+      <p>力維哥 大喊：「死胖子，下次再讓我遇到，我他媽讓你香蕉吃到飽」</p>
+      <button class="end-btn" onclick="window.location.href='stage2.html'">前往第二關：三重集美街</button>
+    </div>
+
+    <div id="defeat-screen">
+      <div id="rescue-box">
+        <p>輸入"阿德救救我"，接關讓小江繼續打手槍</p>
+        <div id="rescue-input-row">
+          <input type="text" id="rescue-input" placeholder="請在此輸入..." autocomplete="off">
+          <button id="rescue-submit" onclick="submitRescuePassword()">接關</button>
+        </div>
+        <div id="rescue-error">密語不對喔，請輸入「阿德救救我」！</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="control-panel" id="right-panel">
+    <a href="index.html" id="home-btn">🏠 首頁</a>
+    <div class="v-btn" id="btn-shoot" data-code="KeyJ">射擊</div>
+    <div class="v-btn" id="btn-jump" data-code="KeyK">跳躍</div>
+    <div class="v-btn" id="btn-dash" data-code="KeyL">衝刺</div>
+    <div class="v-btn" id="btn-weapon">換槍</div>
   </div>
 </div>
 
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let isGamePaused = true;
+let hasUnlockedShotgun = false;
+let hitStopFrames = 0;
+
+function startIntro() {
+  document.getElementById("dialog-intro").style.display = "none";
+  isGamePaused = false;
+}
+
+function closeBossIntro() {
+  document.getElementById("dialog-boss-intro").style.display = "none";
+  isGamePaused = false;
+}
+
+function nextDialog(step) {
+  if (step === 2) {
+    document.getElementById("dialog-step1").style.display = "none";
+    document.getElementById("dialog-step2").style.display = "block";
+  } else if (step === 3) {
+    document.getElementById("dialog-step2").style.display = "none";
+    isGamePaused = false;
+    weaponDrops.push(new HeavyWeaponItem(player.x + 80, 160));
+  }
+}
+
+function closeWeaponHint() {
+  document.getElementById("dialog-weapon-hint").style.display = "none";
+  isGamePaused = false;
+}
+
+function submitRescuePassword() {
+  const inputElem = document.getElementById("rescue-input");
+  const errorElem = document.getElementById("rescue-error");
+  const val = inputElem.value.trim();
+
+  if (val === "阿德救救我") {
+    errorElem.style.display = "none";
+    inputElem.value = "";
+    document.getElementById("defeat-screen").style.display = "none";
+
+    player.lives = 2;
+    player.hp = player.maxHp;
+    player.isDying = false;
+    player.invincible = 120;
+    isGamePaused = false;
+  } else {
+    errorElem.style.display = "block";
+  }
+}
+
+document.getElementById("rescue-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    submitRescuePassword();
+  }
+});
+
+// --- 圖檔資源管理 ---
+const imgBackground = new Image();
+imgBackground.src = "三重國中背景.png";
+let isBgLoaded = false;
+imgBackground.onload = () => { isBgLoaded = true; };
+
+const bullyImages = [];
+const isBullyLoaded = [false, false, false, false];
+for (let i = 1; i <= 4; i++) {
+  const img = new Image();
+  img.src = `惡霸${i}.png`;
+  const idx = i - 1;
+  img.onload = () => { isBullyLoaded[idx] = true; };
+  bullyImages.push(img);
+}
+
+const imgHotdog = new Image();
+imgHotdog.src = "熱狗.png";
+let isHotdogLoaded = false;
+imgHotdog.onload = () => { isHotdogLoaded = true; };
+
+const imgHotdog2 = new Image();
+imgHotdog2.src = "熱狗2.png";
+let isHotdog2Loaded = false;
+imgHotdog2.onload = () => { isHotdog2Loaded = true; };
+
+const imgSausage = new Image();
+imgSausage.src = "香腸.png";
+let isSausageLoaded = false;
+imgSausage.onload = () => { isSausageLoaded = true; };
+
+const imgBossStand = new Image();
+imgBossStand.src = "牛魔王站立.png";
+let isBossStandLoaded = false;
+imgBossStand.onload = () => { isBossStandLoaded = true; };
+
+const imgBossDash = new Image();
+imgBossDash.src = "牛魔王衝刺.png";
+let isBossDashLoaded = false;
+imgBossDash.onload = () => { isBossDashLoaded = true; };
+
+const bananaImages = [];
+const isBananaLoaded = [false, false, false];
+for (let i = 1; i <= 3; i++) {
+  const bImg = new Image();
+  bImg.src = `香蕉${i}.png`;
+  const bIdx = i - 1;
+  bImg.onload = () => { isBananaLoaded[bIdx] = true; };
+  bananaImages.push(bImg);
+}
+
+const imgPlayerStand = new Image();
+imgPlayerStand.src = "小江站立.png";
+let isStandLoaded = false;
+imgPlayerStand.onload = () => { isStandLoaded = true; };
+
+const imgPlayerWalk1 = new Image();
+imgPlayerWalk1.src = "小江走路1.png";
+let isWalk1Loaded = false;
+imgPlayerWalk1.onload = () => { isWalk1Loaded = true; };
+
+const imgPlayerWalk2 = new Image();
+imgPlayerWalk2.src = "小江走路2.png";
+let isWalk2Loaded = false;
+imgPlayerWalk2.onload = () => { isWalk2Loaded = true; };
+
+const imgPlayerShoot = new Image();
+imgPlayerShoot.src = "小江射擊.png";
+let isShootLoaded = false;
+imgPlayerShoot.onload = () => { isShootLoaded = true; };
+
+const imgPlayerCrouch = new Image();
+imgPlayerCrouch.src = "小江蹲下.png";
+let isCrouchLoaded = false;
+imgPlayerCrouch.onload = () => { isCrouchLoaded = true; };
+
+const imgPlayerJump = new Image();
+imgPlayerJump.src = "小江跳躍.png";
+let isJumpLoaded = false;
+imgPlayerJump.onload = () => { isJumpLoaded = true; };
+
+const imgPlayerDash1 = new Image();
+imgPlayerDash1.src = "小江衝刺1.png";
+let isDash1Loaded = false;
+imgPlayerDash1.onload = () => { isDash1Loaded = true; };
+
+const imgPlayerDash2 = new Image();
+imgPlayerDash2.src = "小江衝刺2.png";
+let isDash2Loaded = false;
+imgPlayerDash2.onload = () => { isDash2Loaded = true; };
+
+const imgPlayerDead = new Image();
+imgPlayerDead.src = "小江陣亡.png";
+let isDeadLoaded = false;
+imgPlayerDead.onload = () => { isDeadLoaded = true; };
+
+// --- 動作特效粒子系統 ---
+const fxEffects = [];
+
+class ActionFX {
+  constructor(x, y, vx, vy, length, width, color, life, type = "LINE", text = "") {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.length = length;
+    this.width = width;
+    this.color = color;
+    this.life = life;
+    this.maxLife = life;
+    this.type = type;
+    this.text = text;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life--;
+  }
+  draw(camX) {
+    ctx.save();
+    const alpha = Math.max(0, this.life / this.maxLife);
+    ctx.globalAlpha = alpha;
+
+    if (this.type === "LINE") {
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = this.width;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(this.x - camX, this.y);
+      ctx.lineTo(this.x - camX - this.vx * this.length, this.y - this.vy * this.length);
+      ctx.stroke();
+    } else if (this.type === "DUST") {
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(this.x - camX, this.y, this.width * (1 - alpha + 0.5), 0, Math.PI * 2);
+      ctx.fill();
+    } else if (this.type === "TEXT") {
+      ctx.font = "bold 16px monospace";
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#000000";
+      ctx.strokeText(this.text, this.x - camX, this.y);
+      ctx.fillStyle = this.color;
+      ctx.fillText(this.text, this.x - camX, this.y);
+    }
+    ctx.restore();
+  }
+}
+
+function spawnDashLines(x, y, w, dir, isAir) {
+  const originX = dir === 1 ? x : x + w;
+  for (let i = 0; i < 4; i++) {
+    const offsetY = (Math.random() - 0.5) * 75;
+    fxEffects.push(new ActionFX(
+      originX - dir * (Math.random() * 25),
+      y + 55 + offsetY,
+      dir * (12 + Math.random() * 8),
+      (Math.random() - 0.5) * 1.5,
+      2.5,
+      2.5 + Math.random() * 2,
+      "#ffffff",
+      12,
+      "LINE"
+    ));
+  }
+
+  if (!isAir) {
+    for (let i = 0; i < 2; i++) {
+      fxEffects.push(new ActionFX(
+        originX - dir * 10,
+        y + 132 + (Math.random() - 0.5) * 6,
+        -dir * (3 + Math.random() * 4),
+        -Math.random() * 2.5,
+        0,
+        5 + Math.random() * 4,
+        "rgba(240, 240, 240, 0.75)",
+        15,
+        "DUST"
+      ));
+    }
+  }
+}
+
+function spawnJumpBurst(x, y, w, dir, isDouble, isDashJump) {
+  const lineCount = isDashJump ? 12 : isDouble ? 9 : 7;
+  const color = isDashJump ? "#f1c40f" : "#ffffff";
+  const centerX = x + w / 2;
+
+  for (let i = 0; i < lineCount; i++) {
+    let angle;
+    if (isDashJump) {
+      const baseAngle = dir === 1 ? Math.PI * 0.75 : Math.PI * 0.25;
+      angle = baseAngle + (Math.random() - 0.5) * 0.7;
+    } else {
+      angle = (Math.PI / 2) + (Math.random() - 0.5) * 1.3;
+    }
+    const speed = 7 + Math.random() * 9;
+    fxEffects.push(new ActionFX(
+      centerX + (Math.random() - 0.5) * 35,
+      y + 130,
+      Math.cos(angle) * speed,
+      Math.sin(angle) * speed,
+      2.2,
+      2.5 + Math.random() * 2,
+      color,
+      14,
+      "LINE"
+    ));
+  }
+}
+
+function spawnExplosion(x, y) {
+  for (let i = 0; i < 16; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 3 + Math.random() * 7;
+    fxEffects.push(new ActionFX(
+      x,
+      y,
+      Math.cos(angle) * speed,
+      Math.sin(angle) * speed,
+      2.0,
+      3 + Math.random() * 4,
+      i % 2 === 0 ? "#e74c3c" : "#f1c40f",
+      16,
+      "LINE"
+    ));
+    fxEffects.push(new ActionFX(
+      x + (Math.random() - 0.5) * 20,
+      y + (Math.random() - 0.5) * 10,
+      (Math.random() - 0.5) * 3,
+      -Math.random() * 4,
+      0,
+      6 + Math.random() * 6,
+      "rgba(200, 200, 200, 0.7)",
+      20,
+      "DUST"
+    ));
+  }
+}
+
+function spawnPlayerDeathExplosion(x, y) {
+  for (let i = 0; i < 28; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 4 + Math.random() * 8.5;
+    const color = (i % 3 === 0) ? "#e74c3c" : (i % 3 === 1) ? "#f39c12" : "#ffffff";
+    fxEffects.push(new ActionFX(
+      x,
+      y,
+      Math.cos(angle) * speed,
+      Math.sin(angle) * speed,
+      3.0,
+      4 + Math.random() * 4,
+      color,
+      24,
+      "LINE"
+    ));
+    fxEffects.push(new ActionFX(
+      x + (Math.random() - 0.5) * 30,
+      y + (Math.random() - 0.5) * 30,
+      (Math.random() - 0.5) * 4,
+      -Math.random() * 5,
+      0,
+      8 + Math.random() * 8,
+      "rgba(240, 240, 240, 0.85)",
+      28,
+      "DUST"
+    ));
+  }
+}
+
+function spawnHealFX(x, y) {
+  for (let i = 0; i < 14; i++) {
+    const angle = (Math.PI * 2 / 14) * i;
+    const speed = 2.5 + Math.random() * 3.5;
+    fxEffects.push(new ActionFX(
+      x,
+      y,
+      Math.cos(angle) * speed,
+      Math.sin(angle) * speed,
+      1.8,
+      3.5,
+      "#2ecc71",
+      22,
+      "LINE"
+    ));
+  }
+  fxEffects.push(new ActionFX(x - 22, y - 20, 0, -1.2, 0, 0, "#2ecc71", 30, "TEXT", "+50 HP"));
+}
+
+let lastTapTimeLeft = 0;
+let lastTapTimeRight = 0;
+const DOUBLE_TAP_THRESHOLD = 250;
+
+function handleDirectionPress(dir) {
+  const now = Date.now();
+  if (dir === "left") {
+    if (now - lastTapTimeLeft < DOUBLE_TAP_THRESHOLD) player.startDash(-1);
+    lastTapTimeLeft = now;
+  } else if (dir === "right") {
+    if (now - lastTapTimeRight < DOUBLE_TAP_THRESHOLD) player.startDash(1);
+    lastTapTimeRight = now;
+  }
+}
+
+const keys = {};
+
+function isShootKey(code) { return code === "KeyJ" || code === "KeyX"; }
+function isJumpKey(code) { return code === "KeyK" || code === "KeyC" || code === "Space" || code === "KeyW" || code === "ArrowUp"; }
+
+window.addEventListener("keydown", (e) => {
+  if (isGamePaused || player.isDying) return;
+
+  if (isShootKey(e.code) && !keys[e.code]) player.tryRapidFire();
+  if (isJumpKey(e.code) && !keys[e.code]) player.tryJump();
+  if (e.code === "KeyL" && !keys["KeyL"]) player.startDash(player.facing);
+
+  if ((e.code === "KeyA" || e.code === "ArrowLeft") && !keys[e.code]) handleDirectionPress("left");
+  if ((e.code === "KeyD" || e.code === "ArrowRight") && !keys[e.code]) handleDirectionPress("right");
+
+  keys[e.code] = true;
+  if (e.code === "Digit1") player.weapon = "PISTOL";
+  if (e.code === "Digit2" && hasUnlockedShotgun) player.weapon = "SHOTGUN";
+});
+
+window.addEventListener("keyup", (e) => {
+  keys[e.code] = false;
+});
+
+const touchButtons = document.querySelectorAll(".v-btn[data-code]");
+touchButtons.forEach((btn) => {
+  const code = btn.getAttribute("data-code");
+  btn.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    if (isGamePaused || player.isDying) return;
+    if (isShootKey(code)) player.tryRapidFire();
+    if (isJumpKey(code)) player.tryJump();
+    if (code === "KeyL") player.startDash(player.facing);
+    if (code === "KeyA") handleDirectionPress("left");
+    if (code === "KeyD") handleDirectionPress("right");
+    keys[code] = true;
+  }, { passive: false });
+
+  btn.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    keys[code] = false;
+  }, { passive: false });
+
+  btn.addEventListener("touchcancel", (e) => {
+    e.preventDefault();
+    keys[code] = false;
+  }, { passive: false });
+});
+
+document.getElementById("btn-weapon").addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  if (isGamePaused || player.isDying) return;
+  if (!hasUnlockedShotgun) return;
+  player.weapon = (player.weapon === "PISTOL") ? "SHOTGUN" : "PISTOL";
+}, { passive: false });
+
+document.addEventListener("touchmove", (e) => { e.preventDefault(); }, { passive: false });
+
+const LEVEL_WIDTH = 6400;
+
+const camera = {
+  x: 0,
+  y: 0,
+  update(targetX) {
+    this.x = targetX - canvas.width * 0.38;
+    if (this.x < 0) this.x = 0;
+    if (this.x > LEVEL_WIDTH - canvas.width) this.x = LEVEL_WIDTH - canvas.width;
+  }
+};
+
+const platforms = [
+  { x: 0, y: 435, w: LEVEL_WIDTH, h: 25 },
+  { x: 120, y: 355, w: 130, h: 14 },
+  { x: 320, y: 290, w: 90, h: 14 },
+  { x: 470, y: 220, w: 180, h: 14 },
+  { x: 720, y: 360, w: 110, h: 14 },
+  { x: 890, y: 300, w: 240, h: 14 },
+  { x: 1200, y: 230, w: 90, h: 14 },
+  { x: 1360, y: 310, w: 150, h: 14 },
+  { x: 1580, y: 370, w: 100, h: 14 },
+  { x: 1750, y: 280, w: 300, h: 14 },
+  { x: 2130, y: 210, w: 120, h: 14 },
+  { x: 2320, y: 315, w: 160, h: 14 },
+  { x: 2540, y: 365, w: 90, h: 14 },
+  { x: 2700, y: 290, w: 220, h: 14 },
+  { x: 2990, y: 210, w: 140, h: 14 },
+  { x: 3200, y: 335, w: 270, h: 14 },
+  { x: 3540, y: 265, w: 110, h: 14 },
+  { x: 3720, y: 195, w: 150, h: 14 },
+  { x: 3950, y: 305, w: 310, h: 14 },
+  { x: 4320, y: 235, w: 130, h: 14 },
+  { x: 4520, y: 320, w: 160, h: 14 },
+  { x: 4740, y: 365, w: 110, h: 14 },
+  { x: 4920, y: 290, w: 250, h: 14 },
+  { x: 5240, y: 210, w: 120, h: 14 },
+  { x: 5430, y: 330, w: 190, h: 14 },
+  { x: 5690, y: 260, w: 150, h: 14 },
+  { x: 5900, y: 345, w: 220, h: 14 },
+  { x: 6180, y: 270, w: 160, h: 14 }
+];
+
+const bullets = [];
+
+class Bullet {
+  constructor(x, y, vx, vy, damage, type) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.damage = damage;
+    this.type = type;
+    this.isDead = false;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    if (this.x < -40 || this.x > LEVEL_WIDTH + 40 || this.y < -40 || this.y > canvas.height + 40) {
+      this.isDead = true;
+    }
+  }
+  draw(camX) {
+    ctx.save();
+    const radius = this.type === "SHOTGUN" ? 5.5 : 4.2;
+    const coreColor = this.type === "SHOTGUN" ? "#ff793f" : "#fffa65";
+
+    ctx.shadowColor = this.type === "SHOTGUN" ? "rgba(255, 121, 63, 0.9)" : "rgba(255, 250, 101, 0.9)";
+    ctx.shadowBlur = 6;
+
+    ctx.beginPath();
+    ctx.arc(this.x - camX, this.y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = coreColor;
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = "#1e272e";
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(this.x - camX - 1, this.y - 1, radius * 0.45, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+// 主角小江物件
+const player = {
+  x: 80,
+  y: 295,
+  w: 110,
+  h: 140,
+  vx: 0,
+  vy: 0,
+  speed: 4.3,
+  jumpForce: -13.5,
+  doubleJumpForce: -12.0,
+  jumpCount: 0,
+  hasAirDashed: false,
+  gravity: 0.65,
+  friction: 0.8,
+  facing: 1,
+  aimDir: { x: 1, y: 0 },
+  isOnGround: false,
+  isCrouching: false,
+  isDashing: false,
+  dashDuration: 22,
+  dashTimer: 0,
+  dashCooldown: 0,
+  isDashJumping: false,
+  shootCooldown: 0,
+  shootAnimTimer: 0,
+  weapon: "PISTOL",
+  hp: 200,
+  maxHp: 200,
+  lives: 2,
+  isDying: false,
+  invincible: 0,
+  walkTimer: 0,
+  isMoving: false,
+
+  startDash(dir) {
+    if (this.dashCooldown > 0 || this.isCrouching || this.isDying) return;
+    if (!this.isOnGround && this.hasAirDashed) return;
+
+    this.isDashing = true;
+    this.facing = dir;
+    this.dashTimer = this.dashDuration;
+    this.dashCooldown = 30;
+
+    if (!this.isOnGround) {
+      this.hasAirDashed = true;
+      this.vy = 0;
+    }
+    this.vx = this.facing * 14.8;
+  },
+
+  tryJump() {
+    if (this.isCrouching || this.isDying) return;
+
+    if (this.isOnGround) {
+      if (this.isDashing) {
+        this.isDashJumping = true;
+        this.vy = this.jumpForce * 1.05;
+        this.vx = this.facing * 14.5;
+        this.isDashing = false;
+        spawnJumpBurst(this.x, this.y, this.w, this.facing, false, true);
+      } else {
+        this.isDashJumping = false;
+        this.vy = this.jumpForce;
+        spawnJumpBurst(this.x, this.y, this.w, this.facing, false, false);
+      }
+      this.isOnGround = false;
+      this.jumpCount = 1;
+    } else if (this.jumpCount === 1) {
+      this.vy = this.doubleJumpForce;
+      this.jumpCount = 2;
+      this.isDashing = false;
+      spawnJumpBurst(this.x, this.y, this.w, this.facing, true, false);
+    }
+  },
+
+  tryRapidFire() {
+    if (this.isDying) return;
+    this.shootCooldown = 0;
+    this.fire();
+  },
+
+  die() {
+    this.isDying = true;
+    this.vy = -12.5;
+    this.vx = -this.facing * 3.5;
+    this.isDashing = false;
+    this.isCrouching = false;
+    spawnPlayerDeathExplosion(this.x + this.w / 2, this.y + this.h / 2);
+  },
+
+  respawn() {
+    this.lives--;
+    if (this.lives > 0) {
+      this.hp = this.maxHp;
+      this.isDying = false;
+      this.y = 80;
+      this.vy = 0;
+      this.vx = 0;
+      this.invincible = 120;
+    } else {
+      isGamePaused = true;
+      document.getElementById("defeat-screen").style.display = "block";
+      document.getElementById("rescue-error").style.display = "none";
+      const inputElem = document.getElementById("rescue-input");
+      inputElem.value = "";
+      setTimeout(() => inputElem.focus(), 150);
+    }
+  },
+
+  update() {
+    if (this.isDying) {
+      this.vy += 0.55;
+      this.x += this.vx;
+      this.y += this.vy;
+      if (this.y > canvas.height + 150) {
+        this.respawn();
+      }
+      return;
+    }
+
+    if (this.invincible > 0) this.invincible--;
+    if (this.dashCooldown > 0) this.dashCooldown--;
+    if (this.shootAnimTimer > 0) this.shootAnimTimer--;
+
+    const isDown = keys["KeyS"] || keys["ArrowDown"];
+    this.isCrouching = isDown && this.isOnGround;
+
+    const isLeft = keys["KeyA"] || keys["ArrowLeft"];
+    const isRight = keys["KeyD"] || keys["ArrowRight"];
+    let moveSpeed = this.isCrouching ? 0 : this.speed;
+
+    this.isMoving = false;
+
+    if (this.isDashing) {
+      this.dashTimer--;
+      if (!this.isOnGround) this.vy = 0;
+      this.vx = this.facing * 14.8;
+      if (this.dashTimer % 2 === 0) {
+        spawnDashLines(this.x, this.y, this.w, this.facing, !this.isOnGround);
+      }
+      if (this.dashTimer <= 0) this.isDashing = false;
+    } else if (this.isDashJumping && !this.isOnGround) {
+      if (isLeft) this.facing = -1;
+      else if (isRight) this.facing = 1;
+      this.vx = this.facing * 13.0;
+    } else {
+      if (isLeft) {
+        this.vx = -moveSpeed;
+        this.facing = -1;
+        if (!this.isCrouching) this.isMoving = true;
+      } else if (isRight) {
+        this.vx = moveSpeed;
+        this.facing = 1;
+        if (!this.isCrouching) this.isMoving = true;
+      } else {
+        this.vx *= this.friction;
+        if (Math.abs(this.vx) < 0.2) this.vx = 0;
+      }
+    }
+
+    if (this.isOnGround && this.isMoving && !this.isDashing) {
+      this.walkTimer++;
+    } else {
+      this.walkTimer = 0;
+    }
+
+    this.aimDir = { x: this.facing, y: 0 };
+
+    if (!this.isDashing || this.isOnGround) {
+      this.vy += this.gravity;
+    }
+    this.x += this.vx;
+    this.y += this.vy;
+
+    this.isOnGround = false;
+    for (let p of platforms) {
+      if (this.x + this.w > p.x && this.x < p.x + p.w) {
+        if (this.y + this.h >= p.y && this.y + this.h <= p.y + p.h + Math.max(0, this.vy)) {
+          this.y = p.y - this.h;
+          this.vy = 0;
+          this.isOnGround = true;
+          this.jumpCount = 0;
+          this.hasAirDashed = false;
+          this.isDashJumping = false;
+        }
+      }
+    }
+
+    if (this.x < 0) this.x = 0;
+    if (this.x + this.w > LEVEL_WIDTH) this.x = LEVEL_WIDTH - this.w;
+
+    if (this.shootCooldown > 0) this.shootCooldown--;
+    if ((keys["KeyJ"] || keys["KeyX"]) && this.shootCooldown === 0) {
+      this.fire();
+    }
+  },
+
+  fire() {
+    let startX = this.x + (this.facing === 1 ? this.w * 0.95 : this.w * 0.05);
+    let startY = this.isCrouching ? this.y + this.h * 0.55 : this.y + this.h * 0.44;
+
+    this.shootAnimTimer = 8;
+
+    if (this.weapon === "PISTOL") {
+      bullets.push(new Bullet(startX, startY, this.aimDir.x * 13, 0, 14, "PISTOL"));
+      this.shootCooldown = 10;
+    } else if (this.weapon === "SHOTGUN") {
+      for (let offset of [-0.22, -0.11, 0, 0.11, 0.22]) {
+        const spreadX = this.aimDir.x * Math.cos(offset);
+        const spreadY = Math.sin(offset) * 8;
+        bullets.push(new Bullet(startX, startY, spreadX * 11, spreadY, 8, "SHOTGUN"));
+      }
+      this.shootCooldown = 22;
+    }
+  },
+
+  takeDamage(amount) {
+    if (this.invincible > 0 || this.isDying) return;
+    this.hp = Math.max(0, this.hp - amount);
+    this.invincible = 50;
+    this.vy = -3;
+    this.vx = -this.facing * 4;
+
+    if (this.hp <= 0) {
+      this.die();
+    }
+  },
+
+  draw(camX) {
+    if (this.invincible % 4 > 1 && !this.isDying) return;
+    ctx.save();
+
+    let targetImg = imgPlayerStand;
+    let isLoaded = isStandLoaded;
+
+    let renderH = 140;
+    let renderW = 268;
+
+    if (this.isDying) {
+      if (isDeadLoaded) {
+        targetImg = imgPlayerDead;
+        isLoaded = true;
+      }
+    } else if (this.shootAnimTimer > 0 && isShootLoaded) {
+      targetImg = imgPlayerShoot;
+      isLoaded = true;
+    } else if (this.isCrouching) {
+      if (isCrouchLoaded) {
+        targetImg = imgPlayerCrouch;
+        isLoaded = true;
+      }
+    } else if (this.isDashing) {
+      if (this.dashTimer > this.dashDuration / 2 && isDash1Loaded) {
+        targetImg = imgPlayerDash1;
+        isLoaded = true;
+      } else if (isDash2Loaded) {
+        targetImg = imgPlayerDash2;
+        isLoaded = true;
+      }
+    } else if (!this.isOnGround) {
+      if (isJumpLoaded) {
+        targetImg = imgPlayerJump;
+        isLoaded = true;
+      }
+    } else if (this.isMoving) {
+      const walkFrame = Math.floor(this.walkTimer / 10) % 2;
+      if (walkFrame === 0 && isWalk1Loaded) {
+        targetImg = imgPlayerWalk1;
+        isLoaded = true;
+      } else if (walkFrame === 1 && isWalk2Loaded) {
+        targetImg = imgPlayerWalk2;
+        isLoaded = true;
+      }
+    }
+
+    const offsetX = (renderW - this.w) / 2;
+    const renderX = (this.x - offsetX) - camX;
+    const renderY = this.y;
+
+    if (isLoaded) {
+      if (this.facing === -1) {
+        ctx.translate(renderX + renderW, renderY);
+        ctx.scale(-1, 1);
+        ctx.drawImage(targetImg, 0, 0, renderW, renderH);
+      } else {
+        ctx.drawImage(targetImg, renderX, renderY, renderW, renderH);
+      }
+    } else {
+      ctx.fillStyle = this.isDying ? "#c0392b" : this.isDashing ? "#f39c12" : (this.shootAnimTimer > 0) ? "#e74c3c" : "#3498db";
+      ctx.fillRect(this.x - camX, this.y, this.w, this.h);
+    }
+
+    ctx.restore();
+  }
+};
+
+// --- 惡霸 1~4 敵人配置表 ---
+const BULLY_PROFILES = [
+  { id: 1, name: "惡霸1", speed: 1.9, hp: 60, damage: 14, w: 156, h: 176, widthScale: 1.65 },
+  { id: 2, name: "惡霸2", speed: 1.7, hp: 75, damage: 16, w: 164, h: 176, widthScale: 1.65 },
+  { id: 3, name: "惡霸3", speed: 1.4, hp: 95, damage: 20, w: 176, h: 180, widthScale: 1.70 },
+  { id: 4, name: "惡霸4", speed: 2.1, hp: 65, damage: 15, w: 160, h: 172, widthScale: 1.65 }
+];
+
+const minions = [];
+let minionSpawnTimer = 0;
+
+class Minion {
+  constructor(x) {
+    const bullyIndex = Math.floor(Math.random() * 4);
+    this.bullyIndex = bullyIndex;
+    this.profile = BULLY_PROFILES[bullyIndex];
+
+    this.w = this.profile.w;
+    this.h = this.profile.h;
+    this.x = x;
+    this.y = 435 - this.h;
+    this.hp = this.profile.hp;
+    this.maxHp = this.profile.hp;
+    this.speed = this.profile.speed;
+    this.damage = this.profile.damage;
+    this.widthScale = this.profile.widthScale;
+
+    this.facing = 1;
+    this.isDead = false;
+    this.hitFlash = 0;
+
+    this.state = "CHASE";
+    this.attackCooldown = 0;
+    this.attackTimer = 0;
+  }
+
+  update() {
+    if (this.hitFlash > 0) this.hitFlash--;
+    if (this.attackCooldown > 0) this.attackCooldown--;
+
+    const distToPlayer = Math.abs(this.x - player.x);
+    this.facing = (player.x < this.x) ? -1 : 1;
+
+    if (this.state === "CHASE") {
+      if (distToPlayer > 68) {
+        this.x += this.facing * this.speed;
+      } else {
+        if (this.attackCooldown === 0) {
+          this.state = "ATTACK";
+          this.attackTimer = 24;
+        }
+      }
+    } else if (this.state === "ATTACK") {
+      this.attackTimer--;
+      if (this.attackTimer === 10) {
+        const playerTopY = player.isCrouching ? player.y + 40 : player.y;
+        if (distToPlayer < 90 && (this.y < player.y + player.h && this.y + this.h > playerTopY)) {
+          player.takeDamage(this.damage);
+        }
+      }
+      if (this.attackTimer <= 0) {
+        this.state = "CHASE";
+        this.attackCooldown = 45;
+      }
+    }
+
+    for (let b of bullets) {
+      if (!b.isDead && b.x > this.x && b.x < this.x + this.w && b.y > this.y && b.y < this.y + this.h) {
+        this.hp -= b.damage;
+        this.hitFlash = 4;
+        b.isDead = true;
+        if (this.hp <= 0) this.isDead = true;
+      }
+    }
+  }
+
+  draw(camX) {
+    ctx.save();
+    const renderX = this.x - camX;
+    const renderY = this.y;
+
+    const img = bullyImages[this.bullyIndex];
+    const loaded = isBullyLoaded[this.bullyIndex];
+
+    const drawW = this.w * this.widthScale;
+    const drawH = this.h * 1.05;
+    const drawX = renderX - (drawW - this.w) / 2;
+    const drawY = renderY - (drawH - this.h);
+
+    if (this.hitFlash > 0) {
+      ctx.filter = "brightness(2.2) contrast(1.4)";
+    }
+
+    if (loaded && img.naturalWidth > 0) {
+      if (this.facing === 1) {
+        ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      } else {
+        ctx.translate(drawX + drawW, drawY);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, 0, 0, drawW, drawH);
+      }
+    } else {
+      ctx.fillStyle = this.hitFlash > 0 ? "#ffffff" : "#c0392b";
+      ctx.fillRect(renderX, renderY, this.w, this.h);
+    }
+
+    if (this.state === "ATTACK" && this.attackTimer > 8) {
+      ctx.restore();
+      ctx.save();
+      ctx.fillStyle = "rgba(231, 76, 60, 0.75)";
+      const fistX = this.facing === 1 ? renderX + this.w : renderX - 24;
+      ctx.beginPath();
+      ctx.arc(fistX, renderY + this.h * 0.45, 14, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.save();
+    const barW = this.w + 16;
+    const barH = 6;
+    const barX = renderX - 8;
+    const barY = renderY - 16;
+
+    ctx.fillStyle = "#111";
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barW, barH);
+
+    ctx.fillStyle = "#e74c3c";
+    ctx.fillRect(barX, barY, Math.max(0, (this.hp / this.maxHp) * barW), barH);
+    ctx.restore();
+  }
+}
+
+// --- 回血補品「香腸.png」系統 ---
+const sausageItems = [];
+
+class SausageHealingItem {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.w = 40;
+    this.h = 40;
+    this.healAmount = 50;
+    this.bobTimer = Math.random() * Math.PI * 2;
+    this.isDead = false;
+  }
+  update() {
+    this.bobTimer += 0.06;
+
+    const curY = this.y + Math.sin(this.bobTimer) * 5;
+    if (player.x + player.w > this.x && player.x < this.x + this.w &&
+        player.y + player.h > curY && player.y < curY + this.h) {
+      this.isDead = true;
+      player.hp = Math.min(player.maxHp, player.hp + this.healAmount);
+      spawnHealFX(this.x + this.w / 2, curY + this.h / 2);
+      hitStopFrames = 8;
+    }
+  }
+  draw(camX) {
+    ctx.save();
+    const curY = this.y + Math.sin(this.bobTimer) * 5;
+    const renderX = this.x - camX;
+
+    ctx.shadowColor = "rgba(46, 204, 113, 0.8)";
+    ctx.shadowBlur = 8;
+
+    if (isSausageLoaded && imgSausage.naturalWidth > 0) {
+      ctx.drawImage(imgSausage, renderX, curY, this.w, this.h);
+    } else {
+      ctx.fillStyle = "#c0392b";
+      ctx.beginPath();
+      ctx.roundRect(renderX + 8, curY + 6, 24, 28, 8);
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#e74c3c";
+      ctx.stroke();
+
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillText("+HP", renderX + 7, curY + 24);
+    }
+    ctx.restore();
+  }
+}
+
+const sausageSpots = [
+  { x: 540, y: 180 },
+  { x: 2180, y: 165 },
+  { x: 2820, y: 250 },
+  { x: 3770, y: 150 },
+  { x: 5300, y: 165 },
+  { x: 5600, y: 220 },
+  { x: 6100, y: 300 }
+];
+sausageSpots.forEach(s => sausageItems.push(new SausageHealingItem(s.x, s.y)));
+
+// --- 越南大戰風格「金色大H」武器道具浮標 ---
+const weaponDrops = [];
+
+class HeavyWeaponItem {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.w = 52;
+    this.h = 52;
+    this.vy = 2.5;
+    this.targetY = 435 - 52;
+    this.bobTimer = 0;
+    this.isDead = false;
+  }
+  update() {
+    if (this.y < this.targetY) {
+      this.y += this.vy;
+      if (this.y >= this.targetY) this.y = this.targetY;
+    } else {
+      this.bobTimer += 0.08;
+    }
+
+    const curY = this.y + (this.y >= this.targetY ? Math.sin(this.bobTimer) * 5 : 0);
+    if (player.x + player.w > this.x && player.x < this.x + this.w &&
+        player.y + player.h > curY && player.y < curY + this.h) {
+      this.isDead = true;
+      hasUnlockedShotgun = true;
+      player.weapon = "SHOTGUN";
+      isGamePaused = true;
+      document.getElementById("dialog-weapon-hint").style.display = "block";
+    }
+  }
+  draw(camX) {
+    ctx.save();
+    const curY = this.y + (this.y >= this.targetY ? Math.sin(this.bobTimer) * 5 : 0);
+    const renderX = this.x - camX;
+
+    ctx.fillStyle = "#f39c12";
+    ctx.beginPath();
+    ctx.roundRect(renderX, curY, this.w, this.h, 6);
+    ctx.fill();
+
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#d35400";
+    ctx.stroke();
+
+    ctx.fillStyle = "#f1c40f";
+    ctx.fillRect(renderX + 4, curY + 4, this.w - 8, this.h - 8);
+
+    ctx.font = "900 36px 'Impact', sans-serif";
+    ctx.fillStyle = "#c0392b";
+    ctx.fillText("H", renderX + 14, curY + 39);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 34px 'Impact', sans-serif";
+    ctx.fillText("H", renderX + 15, curY + 38);
+
+    ctx.strokeStyle = "rgba(241, 196, 15, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(renderX + this.w / 2, curY + this.h / 2, 34 + Math.sin(Date.now() / 150) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+}
+
+// --- 敵方彈幕與手榴彈系統 ---
+const enemyBullets = [];
+const enemyGrenades = [];
+
+class EnemyBullet {
+  constructor(x, y, vx, vy) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.radius = 4;
+    this.isDead = false;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    if (this.x < camera.x - 60 || this.x > camera.x + canvas.width + 60) {
+      this.isDead = true;
+    }
+    const playerTopY = player.isCrouching ? player.y + 45 : player.y;
+    if (this.x > player.x + 10 && this.x < player.x + player.w - 10 &&
+        this.y > playerTopY && this.y < player.y + player.h) {
+      player.takeDamage(12);
+      this.isDead = true;
+    }
+  }
+  draw(camX) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(this.x - camX, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#f39c12";
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "#c0392b";
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+class EnemyGrenade {
+  constructor(x, y, vx, vy) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.gravity = 0.38;
+    this.timer = 85;
+    this.isDead = false;
+  }
+  update() {
+    this.vy += this.gravity;
+    this.x += this.vx;
+    this.y += this.vy;
+    this.timer--;
+
+    if (this.y >= 426) {
+      this.y = 426;
+      this.vy = -this.vy * 0.42;
+      this.vx *= 0.72;
+    }
+
+    if (this.timer <= 0) {
+      this.explode();
+      this.isDead = true;
+    }
+  }
+  explode() {
+    spawnExplosion(this.x, this.y);
+    const dist = Math.hypot(this.x - (player.x + player.w / 2), this.y - (player.y + player.h / 2));
+    if (dist < 70) {
+      player.takeDamage(22);
+    }
+  }
+  draw(camX) {
+    ctx.save();
+    const renderX = this.x - camX;
+    const flash = this.timer < 30 && Math.floor(this.timer / 4) % 2 === 0;
+    ctx.fillStyle = flash ? "#e74c3c" : "#27ae60";
+    ctx.beginPath();
+    ctx.arc(renderX, this.y, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#1e272e";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// --- 熱狗2 步兵敵人 ---
+const hotdogEnemies = [];
+let hotdogEnemySpawnTimer = 0;
+
+class HotdogTrooper {
+  constructor(x) {
+    this.x = x;
+    this.w = 64;
+    this.h = 88;
+    this.y = 435 - this.h;
+    this.hp = 50;
+    this.maxHp = 50;
+    this.speed = 1.7;
+    this.facing = -1;
+    this.hitFlash = 0;
+    this.isDead = false;
+
+    this.state = "PATROL";
+    this.actionTimer = 0;
+    this.attackCooldown = Math.floor(Math.random() * 40) + 30;
+  }
+
+  update() {
+    if (this.hitFlash > 0) this.hitFlash--;
+    if (this.attackCooldown > 0) this.attackCooldown--;
+
+    const distToPlayer = Math.abs(this.x - player.x);
+    this.facing = (player.x < this.x) ? -1 : 1;
+
+    if (this.state === "PATROL" || this.state === "CHASE") {
+      if (distToPlayer < 75 && this.attackCooldown <= 0) {
+        this.state = "MELEE_CHARGE";
+        this.actionTimer = 26;
+      } else if (distToPlayer >= 130 && distToPlayer <= 320 && this.attackCooldown <= 0) {
+        if (Math.random() < 0.5) {
+          this.state = "GRENADE";
+          this.actionTimer = 30;
+        } else {
+          this.state = "SHOOT";
+          this.actionTimer = 35;
+        }
+      } else if (distToPlayer < 45) {
+        this.state = "FLEE";
+        this.actionTimer = 35;
+      } else {
+        this.x += this.facing * this.speed;
+      }
+    } else if (this.state === "MELEE_CHARGE") {
+      this.actionTimer--;
+      this.x += this.facing * (this.speed * 2.5);
+      if (this.actionTimer === 12) {
+        const playerTopY = player.isCrouching ? player.y + 40 : player.y;
+        if (distToPlayer < 75 && (this.y < player.y + player.h && this.y + this.h > playerTopY)) {
+          player.takeDamage(18);
+        }
+      }
+      if (this.actionTimer <= 0) {
+        this.state = "CHASE";
+        this.attackCooldown = 65;
+      }
+    } else if (this.state === "SHOOT") {
+      this.actionTimer--;
+      if (this.actionTimer === 15) {
+        const bulletStartX = this.facing === 1 ? this.x + this.w : this.x;
+        const bulletStartY = this.y + this.h * 0.48;
+        enemyBullets.push(new EnemyBullet(bulletStartX, bulletStartY, this.facing * 8.5, 0));
+      }
+      if (this.actionTimer <= 0) {
+        this.state = "CHASE";
+        this.attackCooldown = 75;
+      }
+    } else if (this.state === "GRENADE") {
+      this.actionTimer--;
+      if (this.actionTimer === 14) {
+        const throwStartX = this.facing === 1 ? this.x + this.w : this.x;
+        const throwStartY = this.y + this.h * 0.35;
+        const throwVx = this.facing * (4.2 + Math.random() * 2.5);
+        enemyGrenades.push(new EnemyGrenade(throwStartX, throwStartY, throwVx, -7.5));
+      }
+      if (this.actionTimer <= 0) {
+        this.state = "CHASE";
+        this.attackCooldown = 90;
+      }
+    } else if (this.state === "FLEE") {
+      this.actionTimer--;
+      this.x -= this.facing * (this.speed * 1.3);
+      if (this.actionTimer <= 0) {
+        this.state = "CHASE";
+        this.attackCooldown = 40;
+      }
+    }
+
+    for (let b of bullets) {
+      if (!b.isDead && b.x > this.x && b.x < this.x + this.w && b.y > this.y && b.y < this.y + this.h) {
+        this.hp -= b.damage;
+        this.hitFlash = 4;
+        b.isDead = true;
+        if (this.hp <= 0) this.isDead = true;
+      }
+    }
+  }
+
+  draw(camX) {
+    ctx.save();
+    const renderX = this.x - camX;
+    const renderY = this.y;
+
+    const drawW = this.w * 1.25;
+    const drawH = this.h * 1.05;
+    const drawX = renderX - (drawW - this.w) / 2;
+    const drawY = renderY - (drawH - this.h);
+
+    if (this.hitFlash > 0) {
+      ctx.filter = "brightness(2.2) contrast(1.4)";
+    }
+
+    if (isHotdog2Loaded && imgHotdog2.naturalWidth > 0) {
+      if (this.facing === 1) {
+        ctx.drawImage(imgHotdog2, drawX, drawY, drawW, drawH);
+      } else {
+        ctx.translate(drawX + drawW, drawY);
+        ctx.scale(-1, 1);
+        ctx.drawImage(imgHotdog2, 0, 0, drawW, drawH);
+      }
+    } else {
+      ctx.fillStyle = this.hitFlash > 0 ? "#ffffff" : "#d35400";
+      ctx.fillRect(renderX, renderY, this.w, this.h);
+      ctx.fillStyle = "#f39c12";
+      ctx.fillRect(renderX + 8, renderY + 8, this.w - 16, this.h - 16);
+    }
+
+    if (this.state === "MELEE_CHARGE") {
+      ctx.restore();
+      ctx.save();
+      ctx.fillStyle = "#e74c3c";
+      ctx.font = "bold 13px sans-serif";
+      ctx.fillText("⚡突刺", renderX + 4, renderY - 18);
+    } else if (this.state === "GRENADE") {
+      ctx.restore();
+      ctx.save();
+      ctx.fillStyle = "#e67e22";
+      ctx.font = "bold 13px sans-serif";
+      ctx.fillText("💣手榴彈", renderX, renderY - 18);
+    }
+    ctx.restore();
+
+    ctx.save();
+    const barW = this.w + 10;
+    const barH = 5;
+    const barX = renderX - 5;
+    const barY = renderY - 12;
+
+    ctx.fillStyle = "#111";
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barW, barH);
+
+    ctx.fillStyle = "#e67e22";
+    ctx.fillRect(barX, barY, Math.max(0, (this.hp / this.maxHp) * barW), barH);
+    ctx.restore();
+  }
+}
+
+// --- 熱狗空襲類別 ---
+const hotdogs = [];
+let hotdogSpawnTimer = 0;
+
+class HotdogBomb {
+  constructor(targetX) {
+    this.targetX = targetX;
+    this.targetY = 435;
+    this.x = targetX;
+    this.y = -70;
+    this.w = 46;
+    this.h = 60;
+    this.vy = 0.5;
+    this.gravity = 0.18;
+    this.maxFallSpeed = 3.8;
+    this.warningTimer = 55;
+    this.isDead = false;
+  }
+
+  update() {
+    if (this.warningTimer > 0) {
+      this.warningTimer--;
+      return;
+    }
+
+    this.vy = Math.min(this.maxFallSpeed, this.vy + this.gravity);
+    this.y += this.vy;
+
+    if (this.y + this.h >= this.targetY) {
+      this.y = this.targetY - this.h;
+      this.explode();
+      this.isDead = true;
+    }
+  }
+
+  explode() {
+    spawnExplosion(this.x, this.targetY - 15);
+    const explosionRadius = 75;
+    const playerCenterX = player.x + player.w / 2;
+    const playerCenterY = player.y + player.h / 2;
+    const dist = Math.hypot(this.x - playerCenterX, this.targetY - playerCenterY);
+
+    if (dist < explosionRadius) {
+      player.takeDamage(20);
+    }
+  }
+
+  draw(camX) {
+    const renderX = this.x - camX;
+
+    if (this.warningTimer > 0) {
+      ctx.save();
+      const alpha = 0.35 + Math.sin(Date.now() / 90) * 0.3;
+      ctx.fillStyle = `rgba(231, 76, 60, ${alpha})`;
+      ctx.strokeStyle = `rgba(192, 57, 43, ${alpha + 0.2})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(renderX, this.targetY - 4, 38, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 12px sans-serif";
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#000000";
+      ctx.strokeText("⚠️ 熱狗空襲", renderX - 32, this.targetY - 22);
+      ctx.fillText("⚠️ 熱狗空襲", renderX - 32, this.targetY - 22);
+      ctx.restore();
+    } else {
+      ctx.save();
+      const drawX = renderX - this.w / 2;
+      const drawY = this.y;
+
+      if (isHotdogLoaded && imgHotdog.naturalWidth > 0) {
+        ctx.drawImage(imgHotdog, drawX, drawY, this.w, this.h);
+      } else {
+        ctx.fillStyle = "#d35400";
+        ctx.beginPath();
+        ctx.roundRect(drawX + 8, drawY, 30, this.h, 12);
+        ctx.fill();
+        ctx.strokeStyle = "#2c3e50";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+}
+
+// --- BOSS 香蕉彈幕類別 ---
+const bossBananas = [];
+
+class BossBanana {
+  constructor(x, y, vx, vy, bananaType) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.bananaType = bananaType;
+    this.w = 34;
+    this.h = 34;
+    this.rotation = Math.random() * Math.PI * 2;
+    this.rotSpeed = 0.15 * (vx > 0 ? 1 : -1);
+    this.isDead = false;
+  }
+
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.rotation += this.rotSpeed;
+
+    if (this.x < camera.x - 100 || this.x > camera.x + canvas.width + 100 ||
+        this.y < -60 || this.y > canvas.height + 60) {
+      this.isDead = true;
+    }
+
+    const playerCenterX = player.x + player.w / 2;
+    const playerCenterY = player.y + player.h / 2;
+    if (Math.hypot(this.x - playerCenterX, this.y - playerCenterY) < 36) {
+      player.takeDamage(16);
+      this.isDead = true;
+    }
+  }
+
+  draw(camX) {
+    ctx.save();
+    const renderX = this.x - camX;
+    ctx.translate(renderX, this.y);
+    ctx.rotate(this.rotation);
+
+    const img = bananaImages[this.bananaType];
+    const loaded = isBananaLoaded[this.bananaType];
+
+    if (loaded && img.naturalWidth > 0) {
+      ctx.drawImage(img, -this.w / 2, -this.h / 2, this.w, this.h);
+    } else {
+      ctx.fillStyle = "#f1c40f";
+      ctx.beginPath();
+      ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#e67e22";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+// --- BOSS：惡霸力維哥 ---
+const boss = {
+  x: 5950,
+  y: 435 - 165,
+  w: 130,
+  h: 165,
+  hp: 1800,
+  maxHp: 1800,
+  state: "DORMANT",
+  timer: 0,
+  facing: -1,
+  vx: 0,
+  isDead: false,
+  hitFlash: 0,
+  bananaBurstCooldown: 0,
+  hasTriggeredIntro: false,
+  hasTriggered80Event: false,
+
+  update() {
+    if (this.isDead) return;
+    if (this.hitFlash > 0) this.hitFlash--;
+
+    if (this.state === "DORMANT") {
+      if (player.x > 5500) {
+        if (!this.hasTriggeredIntro) {
+          this.hasTriggeredIntro = true;
+          isGamePaused = true;
+          document.getElementById("dialog-boss-intro").style.display = "block";
+        }
+        this.state = "IDLE";
+        this.timer = 0;
+      } else {
+        return;
+      }
+    }
+
+    if (!this.hasTriggered80Event && this.hp <= this.maxHp * 0.8) {
+      this.hasTriggered80Event = true;
+      isGamePaused = true;
+      document.getElementById("dialog-step1").style.display = "block";
+    }
+
+    this.timer++;
+    const distToPlayer = Math.abs(this.x - player.x);
+
+    if (this.state !== "CHARGING") {
+      this.facing = (player.x < this.x) ? -1 : 1;
+    }
+
+    if (this.state === "IDLE") {
+      this.vx = 0;
+      if (this.timer > 40) {
+        this.timer = 0;
+        if (Math.random() < 0.55 || distToPlayer > 350) {
+          this.state = "CHARGE_PREPARE";
+        } else {
+          this.state = "WALK";
+        }
+      }
+    } else if (this.state === "WALK") {
+      this.vx = this.facing * 2.2;
+      this.x += this.vx;
+
+      if (distToPlayer < 110) {
+        this.state = "PUNCH";
+        this.timer = 0;
+      }
+      if (this.timer > 90) {
+        this.state = "IDLE";
+        this.timer = 0;
+      }
+    } else if (this.state === "PUNCH") {
+      this.vx = 0;
+      if (this.timer === 22) {
+        this.vx = this.facing * 6;
+        const playerTop = player.isCrouching ? player.y + 40 : player.y;
+        if (distToPlayer < 130 && playerTop < this.y + 110) {
+          player.takeDamage(28);
+        }
+      }
+      if (this.timer > 50) {
+        this.state = "IDLE";
+        this.timer = 0;
+      }
+    } else if (this.state === "CHARGE_PREPARE") {
+      this.vx = 0;
+      if (this.timer % 4 === 0) {
+        this.facing = (player.x < this.x) ? -1 : 1;
+      }
+      if (this.timer > 35) {
+        this.state = "CHARGING";
+        this.timer = 0;
+        this.vx = this.facing * 12.5;
+        this.bananaBurstCooldown = 0;
+      }
+    } else if (this.state === "CHARGING") {
+      this.x += this.vx;
+
+      this.bananaBurstCooldown--;
+      if (this.bananaBurstCooldown <= 0) {
+        const bananaX = this.facing === 1 ? this.x + this.w : this.x;
+        const bananaY = this.y + 45 + Math.random() * 50;
+
+        for (let i = 0; i < 3; i++) {
+          const angleOffset = (i - 1) * 0.32;
+          const speed = 7.5 + Math.random() * 3.5;
+          const bVx = this.facing * Math.cos(angleOffset) * speed;
+          const bVy = Math.sin(angleOffset) * speed - 1.5;
+          bossBananas.push(new BossBanana(bananaX, bananaY, bVx, bVy, i));
+        }
+        this.bananaBurstCooldown = 9;
+      }
+
+      if (distToPlayer < 105 && Math.abs(this.y - player.y) < 130) {
+        player.takeDamage(35);
+      }
+
+      if (this.x <= 5300 || this.x + this.w >= LEVEL_WIDTH - 20 || this.timer > 75) {
+        this.state = "STUNNED";
+        this.timer = 0;
+        this.vx = 0;
+        spawnExplosion(this.x + this.w / 2, this.y + this.h / 2);
+      }
+    } else if (this.state === "STUNNED") {
+      if (this.timer > 70) {
+        this.state = "IDLE";
+        this.timer = 0;
+      }
+    }
+
+    for (let b of bullets) {
+      if (!b.isDead && b.x > this.x && b.x < this.x + this.w && b.y > this.y && b.y < this.y + this.h) {
+        this.hp -= b.damage;
+        this.hitFlash = 4;
+        b.isDead = true;
+        if (this.hp <= 0) {
+          this.isDead = true;
+          document.getElementById("victory-panel").style.display = "block";
+        }
+      }
+    }
+  },
+
+  draw(camX) {
+    if (this.isDead) return;
+    const renderX = this.x - camX;
+    ctx.save();
+
+    let targetImg = imgBossStand;
+    let isLoaded = isBossStandLoaded;
+
+    if (this.state === "CHARGING" || this.state === "CHARGE_PREPARE") {
+      if (isBossDashLoaded) {
+        targetImg = imgBossDash;
+        isLoaded = true;
+      }
+    }
+
+    const drawW = 190;
+    const drawH = 180;
+    const drawX = renderX - (drawW - this.w) / 2;
+    const drawY = this.y - (drawH - this.h);
+
+    if (this.hitFlash > 0) {
+      ctx.filter = "brightness(2.2) contrast(1.4)";
+    } else if (this.state === "CHARGE_PREPARE") {
+      ctx.filter = "drop-shadow(0px 0px 10px #e74c3c)";
+    } else if (this.state === "STUNNED") {
+      ctx.filter = "sepia(0.8) hue-rotate(20deg)";
+    }
+
+    if (isLoaded && targetImg.naturalWidth > 0) {
+      if (this.facing === 1) {
+        ctx.drawImage(targetImg, drawX, drawY, drawW, drawH);
+      } else {
+        ctx.translate(drawX + drawW, drawY);
+        ctx.scale(-1, 1);
+        ctx.drawImage(targetImg, 0, 0, drawW, drawH);
+      }
+    } else {
+      ctx.fillStyle = this.hitFlash > 0 ? "#ffffff" : this.state === "CHARGING" ? "#e74c3c" : "#8e44ad";
+      ctx.fillRect(renderX, this.y, this.w, this.h);
+    }
+    ctx.restore();
+
+    ctx.save();
+    const barW = this.w + 40;
+    const barH = 9;
+    const barX = renderX - 20;
+    const barY = this.y - 28;
+
+    ctx.fillStyle = "#111";
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(barX, barY, barW, barH);
+
+    ctx.fillStyle = "#e74c3c";
+    ctx.fillRect(barX, barY, Math.max(0, (this.hp / this.maxHp) * barW), barH);
+
+    ctx.font = "bold 13px sans-serif";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#000";
+    ctx.strokeText("校園惡霸 - 力維哥", barX - 6, barY - 8);
+    ctx.fillStyle = "#f1c40f";
+    ctx.fillText("校園惡霸 - 力維哥", barX - 6, barY - 8);
+    ctx.restore();
+  }
+};
+
+function gameLoop() {
+  if (!isGamePaused) {
+    if (hitStopFrames > 0) {
+      hitStopFrames--;
+    } else {
+      player.update();
+      camera.update(player.x);
+      boss.update();
+
+      if (!boss.isDead) {
+        minionSpawnTimer++;
+        if (minionSpawnTimer > 150 && minions.length < 4) {
+          const spawnX = Math.random() > 0.4 ? camera.x + canvas.width + 40 : camera.x - 40;
+          if (spawnX > 0 && spawnX < LEVEL_WIDTH - 200) {
+            minions.push(new Minion(spawnX));
+          }
+          minionSpawnTimer = 0;
+        }
+
+        hotdogEnemySpawnTimer++;
+        if (hotdogEnemySpawnTimer > 170 && hotdogEnemies.length < 5) {
+          const spawnX = camera.x + canvas.width + 50;
+          if (spawnX < LEVEL_WIDTH - 250) {
+            hotdogEnemies.push(new HotdogTrooper(spawnX));
+          }
+          hotdogEnemySpawnTimer = 0;
+        }
+
+        hotdogSpawnTimer++;
+        if (hotdogSpawnTimer > 210 && hotdogs.length < 3) {
+          const dropOffset = (Math.random() - 0.5) * 120;
+          const targetDropX = Math.max(40, Math.min(LEVEL_WIDTH - 40, player.x + player.w / 2 + dropOffset));
+          hotdogs.push(new HotdogBomb(targetDropX));
+          hotdogSpawnTimer = 0;
+        }
+      }
+
+      for (let i = minions.length - 1; i >= 0; i--) {
+        minions[i].update();
+        if (minions[i].isDead) minions.splice(i, 1);
+      }
+
+      for (let i = hotdogEnemies.length - 1; i >= 0; i--) {
+        hotdogEnemies[i].update();
+        if (hotdogEnemies[i].isDead) hotdogEnemies.splice(i, 1);
+      }
+
+      for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        enemyBullets[i].update();
+        if (enemyBullets[i].isDead) enemyBullets.splice(i, 1);
+      }
+
+      for (let i = enemyGrenades.length - 1; i >= 0; i--) {
+        enemyGrenades[i].update();
+        if (enemyGrenades[i].isDead) enemyGrenades.splice(i, 1);
+      }
+
+      for (let i = hotdogs.length - 1; i >= 0; i--) {
+        hotdogs[i].update();
+        if (hotdogs[i].isDead) hotdogs.splice(i, 1);
+      }
+
+      for (let i = bossBananas.length - 1; i >= 0; i--) {
+        bossBananas[i].update();
+        if (bossBananas[i].isDead) bossBananas.splice(i, 1);
+      }
+
+      for (let i = sausageItems.length - 1; i >= 0; i--) {
+        sausageItems[i].update();
+        if (sausageItems[i].isDead) sausageItems.splice(i, 1);
+      }
+
+      for (let i = weaponDrops.length - 1; i >= 0; i--) {
+        weaponDrops[i].update();
+        if (weaponDrops[i].isDead) weaponDrops.splice(i, 1);
+      }
+
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        bullets[i].update();
+        if (bullets[i].isDead) bullets.splice(i, 1);
+      }
+
+      for (let i = fxEffects.length - 1; i >= 0; i--) {
+        fxEffects[i].update();
+        if (fxEffects[i].life <= 0) fxEffects.splice(i, 1);
+      }
+    }
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (isBgLoaded && imgBackground.naturalWidth > 0) {
+    const bgH = 435;
+    const bgW = (imgBackground.naturalWidth / imgBackground.naturalHeight) * bgH;
+    const startX = -(camera.x % bgW);
+    for (let x = startX; x < canvas.width; x += bgW) {
+      ctx.drawImage(imgBackground, x, 0, bgW, bgH);
+    }
+  } else {
+    ctx.fillStyle = "#22303c";
+    ctx.fillRect(0, 0, canvas.width, 435);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+    ctx.lineWidth = 2;
+    for (let wx = 100; wx < LEVEL_WIDTH; wx += 300) {
+      if (wx > camera.x - 100 && wx < camera.x + canvas.width + 100) {
+        ctx.strokeRect(wx - camera.x, 80, 120, 160);
+      }
+    }
+  }
+
+  for (let bx = 260; bx < LEVEL_WIDTH; bx += 580) {
+    if (bx + 260 > camera.x && bx < camera.x + canvas.width) {
+      ctx.fillStyle = "#145a32";
+      ctx.fillRect(bx - camera.x, 22, 240, 48);
+      ctx.strokeStyle = "#7d6608";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(bx - camera.x, 22, 240, 48);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.font = "bold 14px sans-serif";
+      const roomNum = Math.floor(bx / 580) + 1;
+      ctx.fillText(`三重國中 - 3年${roomNum}班走廊`, bx - camera.x + 36, 52);
+    }
+  }
+
+  for (let p of platforms) {
+    if (p.x + p.w > camera.x && p.x < camera.x + canvas.width) {
+      if (p.y >= 435) {
+        ctx.fillStyle = "#34495e";
+        ctx.fillRect(p.x - camera.x, p.y, p.w, p.h);
+        ctx.fillStyle = "#2ecc71";
+        ctx.fillRect(p.x - camera.x, p.y, p.w, 3);
+      } else {
+        ctx.fillStyle = "#a04000";
+        ctx.fillRect(p.x - camera.x, p.y, p.w, p.h);
+        ctx.fillStyle = "#d35400";
+        ctx.fillRect(p.x - camera.x, p.y, p.w, 3);
+        ctx.fillStyle = "#5d6d7e";
+        ctx.fillRect(p.x - camera.x + 12, p.y + p.h, 6, 12);
+        ctx.fillRect(p.x - camera.x + p.w - 18, p.y + p.h, 6, 12);
+      }
+    }
+  }
+
+  for (let s of sausageItems) s.draw(camera.x);
+  for (let wd of weaponDrops) wd.draw(camera.x);
+  for (let hd of hotdogs) hd.draw(camera.x);
+  for (let g of enemyGrenades) g.draw(camera.x);
+  for (let eb of enemyBullets) eb.draw(camera.x);
+  for (let b of bossBananas) b.draw(camera.x);
+  for (let fx of fxEffects) fx.draw(camera.x);
+
+  for (let m of minions) m.draw(camera.x);
+  for (let he of hotdogEnemies) he.draw(camera.x);
+  boss.draw(camera.x);
+  player.draw(camera.x);
+  for (let b of bullets) b.draw(camera.x);
+
+  ctx.save();
+  ctx.fillStyle = "rgba(10, 15, 20, 0.65)";
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(10, 10, 240, 85, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  function drawOutlinedText(text, x, y, font, fillColor, strokeColor = "#000000", strokeWidth = 3) {
+    ctx.font = font;
+    ctx.lineWidth = strokeWidth;
+    ctx.strokeStyle = strokeColor;
+    ctx.lineJoin = "round";
+    ctx.strokeText(text, x, y);
+    ctx.fillStyle = fillColor;
+    ctx.fillText(text, x, y);
+  }
+
+  const weaponHintText = hasUnlockedShotgun ? "可按 1/2 或 換槍鍵" : "尚未解鎖散彈槍";
+  drawOutlinedText(`武器: ${player.weapon} (${weaponHintText})`, 18, 26, "bold 12px monospace", "#ffffff");
+  drawOutlinedText(`小江 HP: ${player.hp} / ${player.maxHp}  命數: ${player.lives}`, 18, 46, "bold 12px monospace", "#ffffff");
+
+  ctx.fillStyle = "#222";
+  ctx.fillRect(18, 54, 140, 9);
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(18, 54, 140, 9);
+
+  ctx.fillStyle = player.hp > 50 ? "#2ecc71" : "#e74c3c";
+  ctx.fillRect(18, 54, (player.hp / player.maxHp) * 140, 9);
+
+  const progressPercent = Math.min(100, Math.round((player.x / (LEVEL_WIDTH - player.w)) * 100));
+  drawOutlinedText(`關卡進度: ${progressPercent}%`, 18, 80, "bold 12px monospace", "#f1c40f");
+  ctx.restore();
+
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
 </body>
 </html>
