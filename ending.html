@@ -25,6 +25,81 @@
     justify-content: center;
   }
 
+  /* 開場對話框容器 */
+  #intro-modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    transition: opacity 0.5s ease;
+  }
+
+  .dialog-panel {
+    background: rgba(15, 23, 42, 0.96);
+    border: 3px solid #f39c12;
+    border-radius: 16px;
+    padding: 24px 28px;
+    text-align: center;
+    color: #fff;
+    max-width: 440px;
+    width: 88%;
+    box-shadow: 0 0 30px rgba(243, 156, 18, 0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .dialog-panel h3 {
+    margin: 0 0 14px 0;
+    color: #f1c40f;
+    font-size: 20px;
+    letter-spacing: 1px;
+  }
+
+  .dialog-img {
+    max-width: 170px;
+    max-height: 130px;
+    object-fit: contain;
+    margin-bottom: 15px;
+    filter: drop-shadow(0 0 10px rgba(241, 196, 15, 0.4));
+  }
+
+  .dialog-panel p {
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1.6;
+    color: #ffeaa7;
+    margin: 0 0 20px 0;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+  }
+
+  .dialog-btn {
+    background: linear-gradient(180deg, #f39c12 0%, #d35400 100%);
+    color: #fff;
+    border: 2px solid #f1c40f;
+    padding: 10px 28px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(243, 156, 18, 0.6);
+    transition: transform 0.1s ease, filter 0.2s;
+  }
+
+  .dialog-btn:hover {
+    filter: brightness(1.15);
+  }
+
+  .dialog-btn:active {
+    transform: scale(0.95);
+  }
+
   #credits-container {
     position: absolute;
     top: 0;
@@ -38,7 +113,7 @@
     background: #000;
   }
 
-  /* 加快捲動速度：調整為 7 秒快速捲完 */
+  /* 初始暫停動畫，點擊按鈕後加上 .running 啟動跑馬燈 */
   #credits-track {
     position: absolute;
     top: 100%;
@@ -46,6 +121,11 @@
     max-width: 680px;
     text-align: center;
     animation: scrollCredits 7s linear forwards;
+    animation-play-state: paused;
+  }
+
+  #credits-track.running {
+    animation-play-state: running;
   }
 
   @keyframes scrollCredits {
@@ -160,6 +240,16 @@
 <!-- 背景音樂元件 -->
 <audio id="bgm" src="music.mp3" loop preload="auto"></audio>
 
+<!-- 開場小江感謝對話框 -->
+<div id="intro-modal">
+  <div class="dialog-panel">
+    <h3>✨ 小江的真摯感謝</h3>
+    <img src="小江蹲下.png" alt="小江蹲下" class="dialog-img">
+    <p>小江：「感謝你的手槍，一起拯救這個破亂世界」</p>
+    <button class="dialog-btn" onclick="startEndingSequence()">開啟謝幕</button>
+  </div>
+</div>
+
 <div id="credits-container">
   <div id="credits-track">
     <div class="game-title">小江打手槍</div>
@@ -205,18 +295,24 @@
   const creditsTrack = document.getElementById('credits-track');
   const creditsContainer = document.getElementById('credits-container');
   const finalScreen = document.getElementById('final-screen');
+  const introModal = document.getElementById('intro-modal');
   const bgm = document.getElementById('bgm');
 
-  function startBGM() {
+  function startEndingSequence() {
+    // 播放音樂
     if (bgm && bgm.paused) {
       bgm.play().catch(() => {});
     }
-  }
 
-  // 進入頁面嘗試播放，並設定初次觸控/點擊備援啟動
-  startBGM();
-  window.addEventListener('click', startBGM, { once: true });
-  window.addEventListener('touchstart', startBGM, { once: true });
+    // 淡出並關閉對話框
+    introModal.style.opacity = '0';
+    setTimeout(() => {
+      introModal.style.display = 'none';
+    }, 500);
+
+    // 啟動團隊名單滾動
+    creditsTrack.classList.add('running');
+  }
 
   creditsTrack.addEventListener('animationend', () => {
     creditsContainer.style.display = 'none';
